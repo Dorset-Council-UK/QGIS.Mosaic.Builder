@@ -206,7 +206,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Other
-
-*.bat
+# Handle Visual Studio
 /.vs
+# Other
+Compile_publish.bat

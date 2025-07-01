@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/plugins/mosaic_builder" >
+        <file>icon.png</file>
+    </qresource>
+    <qresource prefix="/plugins/mosaic_builder" >
+        <file>icons/clear.png</file>
+    </qresource>
+    <qresource prefix="/plugins/mosaic_builder" >
+        <file>icons/copy.png</file>
+    </qresource>
+    <qresource prefix="/plugins/mosaic_builder" >
+        <file>icons/disc.png</file>
+    </qresource>
+    <qresource prefix="/plugins/mosaic_builder" >
+        <file>icons/merge.png</file>
+    </qresource>
+    <qresource prefix="/plugins/mosaic_builder" >
+        <file>icons/select.png</file>
+    </qresource>
+    <qresource prefix="/plugins/mosaic_builder" >
+        <file>icons/selectArea.png</file>
+    </qresource>
+    
+</RCC>

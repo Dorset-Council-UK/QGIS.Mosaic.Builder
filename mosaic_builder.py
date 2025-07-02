@@ -23,7 +23,7 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QLabel
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -159,13 +159,70 @@ class MosaicBuilder:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        # Add Disc button
-        self.add_action(
-            icon_path=':/plugins/mosaic_builder/icons/disc.png',
-            text=self.tr(u'Start selecting'),
-            callback=self.run,
-            parent=self.iface.mainWindow())
+        #Create a toolbar for the plugin
+        self.plugin_bar = self.iface.addToolBar("Mosaic Builder")
+        self.plugin_bar.setObjectName(u'Mosaic Builder')
 
+        plugin_bar_text = QLabel(
+            QCoreApplication.translate('MosaicBuilder', 'Mosaic Builder:')
+            )
+        #No action to connect to this!
+        self.plugin_bar.addWidget(plugin_bar_text)
+        
+        # Select feature by click button
+        select_feature = QAction(
+            QIcon(':/plugins/mosaic_builder/icons/select.png'),
+            text=self.tr(u'Select feature by click'),
+            callback=self.run,
+            parent=self.iface.mainWindow()
+        )
+        self.plugin_bar.addAction(select_feature)
+
+        # Select features by drag tool
+        # select_features = QAction(
+        #     icon_path=':/plugins/mosaic_builder/icons/selectArea.png',
+        #     text=self.tr(u'Select features by box'),
+        #     callback=self.run,
+        #     parent=self.iface.mainWindow()
+        # )
+        # self.plugin_bar.addAction(select_features)
+
+        # # Add discs by click button
+        # select_point = QAction(
+        #     icon_path=':/plugins/mosaic_builder/icons/disc.png',
+        #     text=self.tr(u'Add disc by click'),
+        #     callback=self.run,
+        #     parent=self.iface.mainWindow()
+        # )
+        # self.plugin_bar.addAction(select_point)
+
+        # # Add merge button
+        # merge_stamps = QAction(
+        #     icon_path=':/plugins/mosaic_builder/icons/merge.png',
+        #     text=self.tr(u'Merge selected features'),
+        #     callback=self.run,
+        #     parent=self.iface.mainWindow()
+        # )
+        # self.plugin_bar.addAction(merge_stamps)
+
+        # # Add copy button
+        # copy_mosaic = QAction(
+        #     icon_path=':/plugins/mosaic_builder/icons/copy.png',
+        #     text=self.tr(u'Copy to clipboard'),
+        #     callback=self.run,
+        #     parent=self.iface.mainWindow()
+        # )
+        # self.plugin_bar.addAction(copy_mosaic)
+
+        # # Add delete button
+        # reset_mosaic = QAction(
+        #     icon_path=':/plugins/mosaic_builder/icons/clear.png',
+        #     text=self.tr(u'Remove current vector mosaic'),
+        #     callback=self.run,
+        #     parent=self.iface.mainWindow()
+        # )
+        # self.plugin_bar.addAction(reset_mosaic)
+        
         # will be set False in run()
         self.first_start = True
 

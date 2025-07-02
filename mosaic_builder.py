@@ -21,9 +21,15 @@
  *                                                                         *
  ***************************************************************************/
 """
+from abc import abstractclassmethod
+from re import S
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QLabel
+from qgis.core import QgsSnappingUtils, QgsMessageLog, Qgis
+from functools import partial
+
+from .mosaic_builder_canvastools import pointTool, areaTool
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -62,6 +68,20 @@ class MosaicBuilder:
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&Mosaic Builder')
+        #Create a toolbar for the plugin
+        self.plugin_bar = self.iface.addToolBar("Mosaic Builder")
+        self.plugin_bar.setObjectName(u'Mosaic Builder')
+
+        #Define canvas tools
+        self.pointTool = pointTool(iface.mapCanvas())
+        self.pointTool.canvasClicked.connect(self.selectByClick)
+        self.discTool = pointTool(iface.mapCanvas())
+        self.discTool.canvasClicked.connect(self.bufferByClick)
+        self.areaTool = areaTool(iface.mapCanvas())
+        self.areaTool.canvasClicked.connect(self.selectByArea)
+
+        #Override snapping 
+        self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexExtent)
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -87,6 +107,7 @@ class MosaicBuilder:
         icon_path,
         text,
         callback,
+        set_checkable=False,
         enabled_flag=True,
         add_to_menu=True,
         add_to_toolbar=True,
@@ -104,6 +125,10 @@ class MosaicBuilder:
 
         :param callback: Function to be called when the action is triggered.
         :type callback: function
+
+        :param set_checkable: A flag indicating that the action should be set
+            as checkable. Defaults to False.
+        :type set_checkable: bool
 
         :param enabled_flag: A flag indicating if the action should be enabled
             by default. Defaults to True.
@@ -134,7 +159,9 @@ class MosaicBuilder:
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
-        action.triggered.connect(callback)
+        if set_checkable:
+            action.setCheckable(True)
+        action.triggered.connect(partial(callback, action))
         action.setEnabled(enabled_flag)
 
         if status_tip is not None:
@@ -145,7 +172,7 @@ class MosaicBuilder:
 
         if add_to_toolbar:
             # Adds plugin icon to Plugins toolbar
-            self.iface.addToolBarIcon(action)
+            self.plugin_bar.addAction(action)
 
         if add_to_menu:
             self.iface.addPluginToMenu(
@@ -158,11 +185,6 @@ class MosaicBuilder:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
-        #Create a toolbar for the plugin
-        self.plugin_bar = self.iface.addToolBar("Mosaic Builder")
-        self.plugin_bar.setObjectName(u'Mosaic Builder')
-
         plugin_bar_text = QLabel(
             QCoreApplication.translate('MosaicBuilder', 'Mosaic Builder:')
             )
@@ -170,58 +192,49 @@ class MosaicBuilder:
         self.plugin_bar.addWidget(plugin_bar_text)
         
         # Select feature by click button
-        select_feature = QAction(
-            QIcon(':/plugins/mosaic_builder/icons/select.png'),
+        select_feature = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/select.png',
             text=self.tr(u'Select feature by click'),
-            callback=self.run,
-            parent=self.iface.mainWindow()
+            set_checkable=True,
+            callback=self.selectFeature
         )
-        self.plugin_bar.addAction(select_feature)
 
-        # Select features by drag tool
-        # select_features = QAction(
-        #     icon_path=':/plugins/mosaic_builder/icons/selectArea.png',
-        #     text=self.tr(u'Select features by box'),
-        #     callback=self.run,
-        #     parent=self.iface.mainWindow()
-        # )
-        # self.plugin_bar.addAction(select_features)
+        #Select features by drag tool
+        select_features = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/selectArea.png',
+            text=self.tr(u'Select features by box'),
+            set_checkable=True,
+            callback=self.selectArea
+        )
 
-        # # Add discs by click button
-        # select_point = QAction(
-        #     icon_path=':/plugins/mosaic_builder/icons/disc.png',
-        #     text=self.tr(u'Add disc by click'),
-        #     callback=self.run,
-        #     parent=self.iface.mainWindow()
-        # )
-        # self.plugin_bar.addAction(select_point)
+        # Add discs by click button
+        select_point = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/disc.png',
+            text=self.tr(u'Add disc by click'),
+            set_checkable=True,
+            callback=self.addDisc
+        )
 
-        # # Add merge button
-        # merge_stamps = QAction(
-        #     icon_path=':/plugins/mosaic_builder/icons/merge.png',
-        #     text=self.tr(u'Merge selected features'),
-        #     callback=self.run,
-        #     parent=self.iface.mainWindow()
-        # )
-        # self.plugin_bar.addAction(merge_stamps)
+        # Add merge button
+        merge_features = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/merge.png',
+            text=self.tr(u'Merge selected features'),
+            callback=self.mergeFeatures
+        )
 
-        # # Add copy button
-        # copy_mosaic = QAction(
-        #     icon_path=':/plugins/mosaic_builder/icons/copy.png',
-        #     text=self.tr(u'Copy to clipboard'),
-        #     callback=self.run,
-        #     parent=self.iface.mainWindow()
-        # )
-        # self.plugin_bar.addAction(copy_mosaic)
+        # Add copy button
+        copy_mosaic = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/copy.png',
+            text=self.tr(u'Copy to clipboard'),
+            callback=self.copyMosaic
+        )
 
-        # # Add delete button
-        # reset_mosaic = QAction(
-        #     icon_path=':/plugins/mosaic_builder/icons/clear.png',
-        #     text=self.tr(u'Remove current vector mosaic'),
-        #     callback=self.run,
-        #     parent=self.iface.mainWindow()
-        # )
-        # self.plugin_bar.addAction(reset_mosaic)
+        # Add delete button
+        reset_mosaic = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/clear.png',
+            text=self.tr(u'Remove current vector mosaic'),
+            callback=self.clearMosaic
+        )
         
         # will be set False in run()
         self.first_start = True
@@ -232,29 +245,111 @@ class MosaicBuilder:
             self.iface.removePluginMenu(
                 self.tr(u'&Mosaic Builder'),
                 action)
-            self.iface.removeToolBarIcon(action)
 
-    def run(self):
-        """Run method that performs all the real work"""
+        del self.plugin_bar
 
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
-            self.first_start = False
-            self.dlg = MosaicBuilderDialog()
-
-        # show the dialog
-        self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
+        try:
+            self.pointTool.canvasClicked.disconnect(self.selectByClick)
+            self.areaTools.canvasClicked.disconnect(self.selectByArea)
+            self.discTool.canvasClicked.disconnect(self.bufferByClick)
+        except:
             pass
 
+        #Reset default snapping option
+        self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexHybrid)
+
+    #--------------------------------------------
+    # Select tool
+    def selectFeature(self, action):
+        #QgsMessageLog.logMessage("This is a test log", "Mosaic Builder", level=Qgis.Info)
+        self.iface.mapCanvas().setMapTool(self.pointTool)
+        self.pointTool.deactivated.connect(partial(self.toggleChecked, action))
+        callingAction = action.sender()
+        if callingAction:
+            callingAction.setChecked(True)
+
+        #TODO - add this functionality
+        pass
+
+    #--------------------------------------------
+    # Area Select tool
+    def selectArea(self, action):
+        self.iface.mapCanvas().setMapTool(self.areaTool)
+        self.areaTool.deactivated.connect(partial(self.toggleChecked, action))
+        callingAction = action.sender()
+        if callingAction:
+            callingAction.setChecked(True)
+
+        #TODO - add this functionality
+        pass
 
     #--------------------------------------------
     # Disc tool
+    def addDisc(self, action):
+        self.iface.mapCanvas().setMapTool(self.discTool)
+        self.discTool.deactivated.connect(partial(self.toggleChecked, action))
+        callingAction = action.sender()
+        if callingAction:
+            callingAction.setChecked(True)
+
+        #TODO - add this functionality
+        pass
+
+    #--------------------------------------------
+    # Merge tool
+    def mergeFeatures(self, action):
+        #TODO - add this functionality
+        pass
+
+    #--------------------------------------------
+    # Copy tool
+    def copyMosaic(self, action):
+        #TODO - add this functionality
+        pass
+
+    #--------------------------------------------
+    # Clear tool
+    def clearMosaic(self, action):
+        #TODO - add this functionality
+        pass
+
+    #--------------------------------------------
+    # Toggle which buttons are checked
+    def toggleChecked(self, action):
+        action.setChecked(False)
+
+    ##--------------Non UI Functions below this point -------------##
+
+    #--------------------------------------------
+    # Add temporary layer
+    def addDrawingLayer(self):
+        #TODO - add this functionality
+        pass 
+
+    #--------------------------------------------
+    # Remove temporary layer
+    def removeDrawingLayer(self):
+        #TODO - add this functionality
+        pass 
+
+    #--------------------------------------------
+    # Remove temporary layer
+    def selectByClick(self):
+        #TODO - add this functionality
+        pass 
+
+
+    #--------------------------------------------
+    # Remove temporary layer
+    def bufferByClick(self):
+        #TODO - add this functionality
+        pass 
+
+    #--------------------------------------------
+    # Remove temporary layer
+    def selectByArea(self):
+        #TODO - add this functionality
+        pass 
+
 
 

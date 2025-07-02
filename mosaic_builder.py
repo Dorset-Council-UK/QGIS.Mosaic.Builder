@@ -333,20 +333,20 @@ class MosaicBuilder:
         pass 
 
     #--------------------------------------------
-    # Remove temporary layer
+    # Selects the features underneath the clicked point from the currently selected layer
     def selectByClick(self):
         #TODO - add this functionality
         pass 
 
 
     #--------------------------------------------
-    # Remove temporary layer
+    # Creates a buffered circle of x meters from the point clicked
     def bufferByClick(self):
         #TODO - add this functionality
         pass 
 
     #--------------------------------------------
-    # Remove temporary layer
+    # Selects the features underneath the area drawn from the currently selected layer
     def selectByArea(self):
         #TODO - add this functionality
         pass 

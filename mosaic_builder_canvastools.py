@@ -34,7 +34,7 @@ class pointTool(QgsMapToolEmitPoint):
         
     def reset(self):
         self.startPoint = self.endPoint = None
-      self.isEmittingPoint = False
+        self.isEmittingPoint = False
     
     def canvasPressEvent(self, e):
         self.startPoint = self.toMapCoordinates(e.pos())

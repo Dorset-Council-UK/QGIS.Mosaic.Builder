@@ -209,4 +209,5 @@ __marimo__/
 # Handle Visual Studio
 /.vs
 # Other
+resources.py
 Compile_publish.bat

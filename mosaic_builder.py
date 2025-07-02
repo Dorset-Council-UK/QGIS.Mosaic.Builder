@@ -21,8 +21,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-from abc import abstractclassmethod
-from re import S
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QLabel

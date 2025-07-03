@@ -24,7 +24,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QLabel
-from qgis.core import QgsSnappingUtils, QgsMessageLog, Qgis
+from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -77,6 +77,7 @@ class MosaicBuilder:
         self.discTool.canvasClicked.connect(self.bufferByClick)
         self.areaTool = areaTool(iface.mapCanvas())
         self.areaTool.canvasClicked.connect(self.selectByArea)
+        self.mosaicLayer = None
 
         #Override snapping 
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexExtent)
@@ -253,6 +254,9 @@ class MosaicBuilder:
         except:
             pass
 
+        #Ensure the plotting layer is removed
+        self.removeDrawingLayer()
+
         #Reset default snapping option
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexHybrid)
 
@@ -266,6 +270,9 @@ class MosaicBuilder:
         if callingAction:
             callingAction.setChecked(True)
 
+        #Ensure the plotting layer is present
+        self.addDrawingLayer()
+
         #TODO - add this functionality
         pass
 
@@ -278,6 +285,9 @@ class MosaicBuilder:
         if callingAction:
             callingAction.setChecked(True)
 
+        #Ensure the plotting layer is present
+        self.addDrawingLayer()
+
         #TODO - add this functionality
         pass
 
@@ -289,6 +299,9 @@ class MosaicBuilder:
         callingAction = action.sender()
         if callingAction:
             callingAction.setChecked(True)
+
+        #Ensure the plotting layer is present
+        self.addDrawingLayer()
 
         #TODO - add this functionality
         pass
@@ -308,8 +321,8 @@ class MosaicBuilder:
     #--------------------------------------------
     # Clear tool
     def clearMosaic(self, action):
-        #TODO - add this functionality
-        pass
+        #Ensure the plotting layer is removed
+        self.removeDrawingLayer()
 
     #--------------------------------------------
     # Toggle which buttons are checked
@@ -321,14 +334,50 @@ class MosaicBuilder:
     #--------------------------------------------
     # Add temporary layer
     def addDrawingLayer(self):
-        #TODO - add this functionality
-        pass 
+        #If the mosaic layer is none, we look to see if it is already in the map
+        if self.mosaicLayer == None:
+            if len(QgsProject.instance().mapLayersByName('Vector Mosaic'))>0:
+                self.mosaicLayer = QgsProject.instance().mapLayersByName('Vector Mosaic')[0]  
+
+        if self.mosaicLayer == None:
+            #If we are still null here we need to add a new temporary scratch layer for the plugin to use.
+            layer =  QgsVectorLayer("Polygon?crs=epsg:27700&field=TOID:string(250)&index=yes", "Vector Mosaic", "memory")
+            sldStatus2 = layer.loadNamedStyle(':/plugins/mosaic_builder/styles/mosaic.qml')
+            if sldStatus2 == False:
+                self.iface.messageBar().pushMessage("WARNING", "Sorry, we were unable to load the style for the mosaic layer", Qgis.Warning)
+            layerProvider = layer.dataProvider()
+            
+            # add layer to the legend
+            self.mosaicLayer = QgsProject.instance().addMapLayer(layer, False)
+            # obtain the layer tree of the top-level group in the project
+            layerTree = self.iface.layerTreeCanvasBridge().rootGroup()
+            # the position is a number starting from 0, with -1 an alias for the end
+            layerTree.insertChildNode(1, QgsLayerTreeLayer(layer))
 
     #--------------------------------------------
     # Remove temporary layer
     def removeDrawingLayer(self):
-        #TODO - add this functionality
-        pass 
+        #Construct a list of layers to remove
+        layersToRemove = []
+        temporaryLayer = None
+        try:
+            if len(QgsProject.instance().mapLayersByName('Vector Mosaic'))>0:
+                temporaryLayer = QgsProject.instance().mapLayersByName('Vector Mosaic')[0]   
+        except:
+            temporaryLayer = None
+            
+        if temporaryLayer != None:
+            layersToRemove.append(temporaryLayer.id()) 
+
+        #Deactivate the tools
+        self.pointTool.deactivate()
+        self.areaTool.deactivate()
+        self.discTool.deactivate()
+
+        #Delete the layers
+        QgsProject.instance().removeMapLayers(layersToRemove)
+        self.mosaicLayer = None
+        self.iface.mapCanvas().refresh()
 
     #--------------------------------------------
     # Selects the features underneath the clicked point from the currently selected layer

@@ -21,10 +21,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QLabel
-from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer
+from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -341,11 +341,17 @@ class MosaicBuilder:
 
         if self.mosaicLayer == None:
             #If we are still null here we need to add a new temporary scratch layer for the plugin to use.
-            layer =  QgsVectorLayer("Polygon?crs=epsg:27700&field=TOID:string(250)&index=yes", "Vector Mosaic", "memory")
+            layer =  QgsVectorLayer("Polygon?crs=epsg:27700&index=yes", "Vector Mosaic", "memory")
+            layerProvider = layer.dataProvider()
+            layerProvider.addAttributes([
+                QgsField("Primary_Key", QVariant.String),
+                QgsField("Fill", QVariant.String),
+                QgsField("Border", QVariant.String),
+            ])
+            layer.updateFields()
             sldStatus2 = layer.loadNamedStyle(':/plugins/mosaic_builder/styles/mosaic.qml')
             if sldStatus2 == False:
                 self.iface.messageBar().pushMessage("WARNING", "Sorry, we were unable to load the style for the mosaic layer", Qgis.Warning)
-            layerProvider = layer.dataProvider()
             
             # add layer to the legend
             self.mosaicLayer = QgsProject.instance().addMapLayer(layer, False)
@@ -353,6 +359,7 @@ class MosaicBuilder:
             layerTree = self.iface.layerTreeCanvasBridge().rootGroup()
             # the position is a number starting from 0, with -1 an alias for the end
             layerTree.insertChildNode(1, QgsLayerTreeLayer(layer))
+
 
     #--------------------------------------------
     # Remove temporary layer

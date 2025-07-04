@@ -23,7 +23,7 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QLabel
+from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
 from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField
 from functools import partial
 
@@ -315,8 +315,13 @@ class MosaicBuilder:
     #--------------------------------------------
     # Copy tool
     def copyMosaic(self, action):
-        #TODO - add this functionality
-        pass
+        if self.mosaicLayer != None:
+            self.iface.setActiveLayer(self.mosaicLayer)
+            self.mosaicLayer.selectAll()
+            self.iface.copySelectionToClipboard(self.mosaicLayer)
+            QgsProject.instance().layerTreeRoot().findLayer(self.mosaicLayer.id()).setItemVisibilityChecked(False)
+            self.iface.messageBar().pushMessage("INFO", "Mosaic features copied to clipboard. Please paste them into your target layer.", Qgis.Info)
+            QApplication.processEvents()
 
     #--------------------------------------------
     # Clear tool

@@ -24,7 +24,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
-from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField
+from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -78,6 +78,8 @@ class MosaicBuilder:
         self.areaTool = areaTool(iface.mapCanvas())
         self.areaTool.canvasClicked.connect(self.selectByArea)
         self.mosaicLayer = None
+        self.currentDiscSize = 25
+        self.currentDiscArcs = False
 
         #Override snapping 
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexExtent)
@@ -294,17 +296,15 @@ class MosaicBuilder:
     #--------------------------------------------
     # Disc tool
     def addDisc(self, action):
+        #Ensure the plotting layer is present
+        self.addDrawingLayer()
+
+        #Enable the drawing tool
         self.iface.mapCanvas().setMapTool(self.discTool)
         self.discTool.deactivated.connect(partial(self.toggleChecked, action))
         callingAction = action.sender()
         if callingAction:
-            callingAction.setChecked(True)
-
-        #Ensure the plotting layer is present
-        self.addDrawingLayer()
-
-        #TODO - add this functionality
-        pass
+            callingAction.setChecked(True)  
 
     #--------------------------------------------
     # Merge tool
@@ -400,9 +400,34 @@ class MosaicBuilder:
 
     #--------------------------------------------
     # Creates a buffered circle of x meters from the point clicked
-    def bufferByClick(self):
-        #TODO - add this functionality
-        pass 
+    def bufferByClick(self, event, button):
+        if self.mosaicLayer == None:
+            self.iface.messageBar().pushMessage("WARNING", "Sorry, we were unable to add a buffered circle to the mosaic layer", Qgis.Warning)
+        else:
+            self.iface.setActiveLayer(self.mosaicLayer)
+            self.mosaicLayer.startEditing()
+
+            layerEditable = self.iface.activeLayer().isEditable() 
+            layerType = self.iface.activeLayer().geometryType()
+            #This is a double check to ensure we are good to go
+            if layerEditable == True and layerType == 2:
+                #Create the disc geometry
+                discGeometry = QgsGeometry.fromPointXY(QgsPointXY(event.x(),event.y())).buffer(self.currentDiscSize,8)
+                if self.currentDiscArcs:
+                    discGeometry = QgsGeometry.convertToCurves(discGeometry)
+
+                #Push it to the temporary layer
+                discFeature = QgsVectorLayerUtils.createFeature(self.iface.activeLayer())  
+                discFeature.setGeometry(discGeometry)
+                self.iface.activeLayer().addFeature(discFeature)
+                #self.iface.openFeatureForm(self.iface.activeLayer(), discFeature, False) #Do we want to allow the user form to open?
+                self.mosaicLayer.commitChanges()
+
+                #Refresh the canvas and we are done
+                self.iface.mapCanvas().refresh()
+                QApplication.processEvents()
+            else:
+                self.iface.messageBar().pushMessage("WARNING", "Sorry, we were unable to add a buffered circle to the mosaic layer", Qgis.Warning)
 
     #--------------------------------------------
     # Selects the features underneath the area drawn from the currently selected layer

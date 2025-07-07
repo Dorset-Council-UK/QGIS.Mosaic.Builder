@@ -21,10 +21,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QMetaType
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
-from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils
+from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsSimpleFillSymbolLayer
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -80,6 +80,8 @@ class MosaicBuilder:
         self.mosaicLayer = None
         self.currentDiscSize = 25
         self.currentDiscArcs = False
+        self.selectAreaPoint = 0
+        self.currentActiveLayer = None
 
         #Override snapping 
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexExtent)
@@ -265,33 +267,28 @@ class MosaicBuilder:
     #--------------------------------------------
     # Select tool
     def selectFeature(self, action):
-        #QgsMessageLog.logMessage("This is a test log", "Mosaic Builder", level=Qgis.Info)
+        #Ensure the plotting layer is present
+        self.addDrawingLayer()
+
+        #Enable the drawing tool
         self.iface.mapCanvas().setMapTool(self.pointTool)
         self.pointTool.deactivated.connect(partial(self.toggleChecked, action))
         callingAction = action.sender()
         if callingAction:
             callingAction.setChecked(True)
 
-        #Ensure the plotting layer is present
-        self.addDrawingLayer()
-
-        #TODO - add this functionality
-        pass
-
     #--------------------------------------------
     # Area Select tool
     def selectArea(self, action):
+        #Ensure the plotting layer is present
+        self.addDrawingLayer()
+
+        #Enable the drawing tool
         self.iface.mapCanvas().setMapTool(self.areaTool)
         self.areaTool.deactivated.connect(partial(self.toggleChecked, action))
         callingAction = action.sender()
         if callingAction:
             callingAction.setChecked(True)
-
-        #Ensure the plotting layer is present
-        self.addDrawingLayer()
-
-        #TODO - add this functionality
-        pass
 
     #--------------------------------------------
     # Disc tool
@@ -328,11 +325,15 @@ class MosaicBuilder:
     def clearMosaic(self, action):
         #Ensure the plotting layer is removed
         self.removeDrawingLayer()
+        self.selectAreaPoint = 0
+        self.currentActiveLayer = None
 
     #--------------------------------------------
     # Toggle which buttons are checked
     def toggleChecked(self, action):
         action.setChecked(False)
+        self.selectAreaPoint = 0
+        self.currentActiveLayer = None
 
     ##--------------Non UI Functions below this point -------------##
 
@@ -349,9 +350,9 @@ class MosaicBuilder:
             layer =  QgsVectorLayer("Polygon?crs=epsg:27700&index=yes", "Vector Mosaic", "memory")
             layerProvider = layer.dataProvider()
             layerProvider.addAttributes([
-                QgsField("Primary_Key", QVariant.String),
-                QgsField("Fill", QVariant.String),
-                QgsField("Border", QVariant.String),
+                QgsField("Primary_Key", QMetaType.Type.QString),
+                QgsField("Fill", QMetaType.Type.QString),
+                QgsField("Border", QMetaType.Type.QString),
             ])
             layer.updateFields()
             sldStatus2 = layer.loadNamedStyle(':/plugins/mosaic_builder/styles/mosaic.qml')
@@ -393,9 +394,18 @@ class MosaicBuilder:
 
     #--------------------------------------------
     # Selects the features underneath the clicked point from the currently selected layer
-    def selectByClick(self):
-        #TODO - add this functionality
-        pass 
+    def selectByClick(self, event, button):
+        #We need to toggle between the layer that was active and our temporary layer a bit so we store the original
+        currentActiveLayer = self.iface.activeLayer()
+
+        #Update the mosaic layer
+        if self.mosaicLayer == None:
+            self.iface.messageBar().pushMessage("WARNING", "Sorry, we were unable to add a buffered circle to the mosaic layer", Qgis.Warning)
+        else:
+            #Switch back to the original layer and select the feature(s)
+            buffer = 0.001
+            self.selectGeom(currentActiveLayer, event.x() - buffer, event.y() - buffer, event.x() + buffer, event.y() + buffer)
+            self.iface.mapCanvas().refresh()
 
 
     #--------------------------------------------
@@ -431,9 +441,106 @@ class MosaicBuilder:
 
     #--------------------------------------------
     # Selects the features underneath the area drawn from the currently selected layer
-    def selectByArea(self):
-        #TODO - add this functionality
-        pass 
+    def selectByArea(self, event):
+        if self.selectAreaPoint == 0:
+            #Point one is the start point
+            self.selectAreaMinPoint = event
+            #We need to toggle between the layer that was active and our temporary layer a bit so we store the original
+            self.currentActiveLayer = self.iface.activeLayer()
+            self.selectAreaPoint = 1
+        else:
+            #The second point is time to fire the function
+            self.selectAreaPoint = 0
+            self.selectGeom(self.currentActiveLayer, self.selectAreaMinPoint.x(), self.selectAreaMinPoint.y(), event.x(), event.y())
 
+    #--------------------------------------------
+    # Selects the features within the box provided and adds/removes them to the mosaic layer
+    def selectGeom(self, selectLayer, minX, minY, maxX, maxY):      
+        if selectLayer != None:
+            try:
+                self.iface.setActiveLayer(selectLayer)
+                rect = QgsRectangle(minX,
+                                    minY,
+                                    maxX,
+                                    maxY)
+                featureGeom = QgsGeometry.fromRect(rect)
+                featureGeom = self.reprojectGeom(featureGeom, self.iface.mapCanvas().mapSettings().destinationCrs().authid(),'EPSG:27700')
+            
+                returnRect = featureGeom.boundingBox()
+                selectLayer.selectByRect(returnRect, QgsVectorLayer.SelectBehavior.SetSelection)
+            
+                fidList = []
+                #Populate the list
+                for feature in self.mosaicLayer.getFeatures():
+                    fid_value = feature['Primary_Key']
+                    fidList.append(fid_value)
+
+                featuresToAdd = []
+                featuresToRemove = []
+                for feature in selectLayer.selectedFeatures():
+                    fid = str(feature.id())  # This is the internal feature ID (primary key)
+                    if fid not in fidList:
+                        fidList.append(str(fid))
+                        symbol = selectLayer.renderer().symbolForFeature(feature, QgsRenderContext())
+                        
+                        # Access the first symbol layer
+                        fillValue = ""
+                        strokeValue = ""
+                        for i in range(symbol.symbolLayerCount()):
+                            symbol_layer = symbol.symbolLayer(i)
+
+                            if hasattr(symbol_layer, 'strokeColor'):
+                                strokeStyle = symbol_layer.strokeColor()
+                                strokeValue = str(strokeStyle.red()) + "," + str(strokeStyle.green()) + "," + str(strokeStyle.blue()) + "," + str(strokeStyle.alpha())
+
+                            if hasattr(symbol_layer, 'fillColor'):
+                                fillColor = symbol_layer.fillColor()
+                                fillValue = str(fillColor.red()) + "," + str(fillColor.green()) + "," + str(fillColor.blue()) + "," + str(fillColor.alpha())
+                                #QgsMessageLog.logMessage(str(fillValue), "Mosaic Builder", level=Qgis.Info)
+
+                        fields = self.mosaicLayer.fields()
+                        newFeature = QgsFeature()
+                        newFeature.setFields(fields)
+                        newFeature['Primary_Key'] = fid
+                        newFeature['Fill'] = fillValue
+                        newFeature['Border'] = strokeValue
+                        newFeature.setGeometry(feature.geometry())
+                        featuresToAdd.append(newFeature)
+                    else:
+                        featuresToRemove.append(fid)
+                        #QgsMessageLog.logMessage(str(featuresToRemove), "Mosaic Builder", level=Qgis.Info)
+
+                #Make the changes
+                #QgsMessageLog.logMessage(str(featuresToAdd), "Mosaic Builder", level=Qgis.Info)
+                self.mosaicLayer.startEditing()
+                self.mosaicLayer.addFeatures(featuresToAdd)
+                self.mosaicLayer.commitChanges()
+
+                #QgsMessageLog.logMessage(str(featuresToRemove), "Mosaic Builder", level=Qgis.Info)
+                featureList = []
+                for feature in self.mosaicLayer.getFeatures():
+                    if feature['Primary_Key'] in featuresToRemove:
+                        featureList.append(feature.id())
+                self.mosaicLayer.startEditing()
+                resultObject = self.mosaicLayer.deleteFeatures(featureList)
+                if resultObject:
+                    self.mosaicLayer.commitChanges()
+                else:
+                    QgsMessageLog.logMessage("Couldn't delete feature(s)", "Mosaic Builder", level=Qgis.Warning)
+
+                self.mosaicLayer.removeSelection()
+                selectLayer.removeSelection()
+            except Exception as e:
+                QgsMessageLog.logMessage(f"Edit error: {str(e)}", "Mosaic Builder", level=Qgis.Critical)
+
+
+    #--------------------------------------------
+    # Reproject the feature as required
+    def reprojectGeom(self, geometry:QgsGeometry, SourceCrs, destCrs):
+        sourceCrs = QgsCoordinateReferenceSystem(SourceCrs)
+        destCrs = QgsCoordinateReferenceSystem(destCrs)
+        tr = QgsCoordinateTransform(sourceCrs, destCrs, QgsProject.instance())
+        geometry.transform(tr)
+        return geometry
 
 

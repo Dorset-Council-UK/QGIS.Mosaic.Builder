@@ -412,7 +412,7 @@ class MosaicBuilder:
             #This is a double check to ensure we are good to go
             if layerEditable == True and layerType == 2:
                 #Create the disc geometry
-                discGeometry = QgsGeometry.fromPointXY(QgsPointXY(event.x(),event.y())).buffer(self.currentDiscSize,4)
+                discGeometry = QgsGeometry.fromPointXY(QgsPointXY(event.x(),event.y())).buffer(self.currentDiscSize,8)
                 if self.currentDiscArcs:
                     discGeometry = QgsGeometry.convertToCurves(discGeometry)
 

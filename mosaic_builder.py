@@ -24,7 +24,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
-from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression
+from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -81,6 +81,17 @@ class MosaicBuilder:
         self.currentDiscSize = 25
         self.currentDiscArcs = False
         self.selectAreaPoint = 0
+
+        #Check for layer override in project settings
+        GlobalSettings = QgsSettings()
+        keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
+        #QgsMessageLog.logMessage(str(keywordValue), "Mosaic Builder", level=Qgis.Info)
+        if keywordValue is not None:
+            self.overrideSearchLayer = True
+            self.keywordLayer = keywordValue
+        else:
+            self.overrideSearchLayer = False
+
         self.currentActiveLayer = None
         self.styleId = -1 #layer ID of the currently cached style dictionary
         self.styleDictionary = {} #The actual cached dictionary for the layer 
@@ -241,6 +252,15 @@ class MosaicBuilder:
             text=self.tr(u'Remove current vector mosaic'),
             callback=self.clearMosaic
         )
+
+        #Menu only
+        set_default = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/cogs.png',
+            text=self.tr(u'Set default search'),
+            add_to_menu=True,
+            add_to_toolbar=False,
+            callback=self.setDefaultSearchLayer
+        )
         
         # will be set False in run()
         self.first_start = True
@@ -266,6 +286,30 @@ class MosaicBuilder:
 
         #Reset default snapping option
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexHybrid)
+
+    def setDefaultSearchLayer(self, input2, input3):
+        pluginDialog = MosaicBuilderDialog()
+        pluginDialog.show()
+
+        # Run the dialog event loop
+        result = pluginDialog.exec_()
+        # See if OK was pressed
+        if result:
+            GlobalSettings = QgsSettings()
+            if pluginDialog.layerSelectionCombo.currentLayer() == None:
+                GlobalSettings.setValue("mosaicBuilder/searchLayer",None)
+            else:
+                GlobalSettings.setValue("mosaicBuilder/searchLayer",pluginDialog.layerSelectionCombo.currentLayer().id())   
+
+            keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
+            #QgsMessageLog.logMessage(str(keywordValue), "Mosaic Builder", level=Qgis.Info)
+            if keywordValue is not None:
+                self.overrideSearchLayer = True
+                self.keywordLayer = keywordValue
+            else:
+                self.overrideSearchLayer = False
+ 
+
 
     #--------------------------------------------
     # Select tool
@@ -396,10 +440,25 @@ class MosaicBuilder:
         self.iface.mapCanvas().refresh()
 
     #--------------------------------------------
+    # Checks if we should be using the active layer or one specified in the project keywords and uses the appropriate layer
+    def GetSearchLayer(self):
+        #QgsMessageLog.logMessage(str(self.overrideSearchLayer), "Mosaic Builder", level=Qgis.Info)
+        if self.overrideSearchLayer:
+            #QgsMessageLog.logMessage(str(self.keywordLayer), "Mosaic Builder", level=Qgis.Info)
+            if len(QgsProject.instance().mapLayer(self.keywordLayer))>0:
+                self.currentActiveLayer = QgsProject.instance().mapLayer(self.keywordLayer) 
+            else:
+                self.currentActiveLayer = self.iface.activeLayer()
+        else:
+            self.currentActiveLayer = self.iface.activeLayer()
+
+        return self.currentActiveLayer
+
+    #--------------------------------------------
     # Selects the features underneath the clicked point from the currently selected layer
     def selectByClick(self, event, button):
         #We need to toggle between the layer that was active and our temporary layer a bit so we store the original
-        currentActiveLayer = self.iface.activeLayer()
+        currentActiveLayer = self.GetSearchLayer()
 
         #Update the mosaic layer
         if self.mosaicLayer == None:
@@ -442,6 +501,7 @@ class MosaicBuilder:
             else:
                 self.iface.messageBar().pushMessage("WARNING", "Sorry, we were unable to add a buffered circle to the mosaic layer", Qgis.Warning)
 
+
     #--------------------------------------------
     # Selects the features underneath the area drawn from the currently selected layer
     def selectByArea(self, event):
@@ -449,13 +509,16 @@ class MosaicBuilder:
             #Point one is the start point
             self.selectAreaMinPoint = event
             #We need to toggle between the layer that was active and our temporary layer a bit so we store the original
-            self.currentActiveLayer = self.iface.activeLayer()
+            currentActiveLayer = self.GetSearchLayer()
             self.selectAreaPoint = 1
         else:
             #The second point is time to fire the function
             self.selectAreaPoint = 0
             self.selectGeom(self.currentActiveLayer, self.selectAreaMinPoint.x(), self.selectAreaMinPoint.y(), event.x(), event.y())
 
+    #--------------------------------------------
+    # Getting the style is complicated due to the risk of thread violations. This function attemps to extract the style information for the given feature
+    # Currently limited to simple fill and categorized simple fill.
     def CalculateStyles(self, queryLayer, currentFeature):
         # QgsMessageLog.logMessage(
         #     "Currently running in the main thread = " + str(QThread.currentThread() == QCoreApplication.instance().thread()),
@@ -512,7 +575,8 @@ class MosaicBuilder:
                 self.styleDictionary[self.styleDictionaryExpression]['fill'] = colourValue
                 self.styleDictionary[self.styleDictionaryExpression]['stroke'] = strokeValue 
 
-    
+    #--------------------------------------------
+    # This is a helper function, it evaluates an expression for the given feature allowing you to search the style dictionary objects. 
     def getRenderValueForFeature(self, layer, feature, expressionString):
         # expressionString could be a field name or an expression
 
@@ -526,7 +590,6 @@ class MosaicBuilder:
         value = expression.evaluate(context)
 
         return value
-
 
     #--------------------------------------------
     # Selects the features within the box provided and adds/removes them to the mosaic layer

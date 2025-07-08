@@ -21,10 +21,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QMetaType
+from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
-from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsSimpleFillSymbolLayer
+from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -82,6 +82,9 @@ class MosaicBuilder:
         self.currentDiscArcs = False
         self.selectAreaPoint = 0
         self.currentActiveLayer = None
+        self.styleId = -1 #layer ID of the currently cached style dictionary
+        self.styleDictionary = {} #The actual cached dictionary for the layer 
+        self.styleDictionaryExpression = None
 
         #Override snapping 
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexExtent)
@@ -453,6 +456,78 @@ class MosaicBuilder:
             self.selectAreaPoint = 0
             self.selectGeom(self.currentActiveLayer, self.selectAreaMinPoint.x(), self.selectAreaMinPoint.y(), event.x(), event.y())
 
+    def CalculateStyles(self, queryLayer, currentFeature):
+        # QgsMessageLog.logMessage(
+        #     "Currently running in the main thread = " + str(QThread.currentThread() == QCoreApplication.instance().thread()),
+        #     "Mosaic Builder", level=Qgis.Info
+        # )
+
+        renderer = queryLayer.renderer()
+        if isinstance(renderer, QgsCategorizedSymbolRenderer):
+            categoryList = renderer.categories()
+            self.styleDictionaryExpression = renderer.classAttribute()
+
+            if self.styleId != queryLayer.id() or (self.fill_dictionary == {} or self.stroke_dictionary == {}):
+                #This is a new active layer or we have a missing style library
+                self.styleDictionary = {}
+                for c in categoryList:
+                    # get the category value to use as a key in the dictionary
+                    categoryValue = c.value()
+
+                    # get the category's symbol 
+                    categorySymbol = c.symbol()
+                    # get (first) symbol layer - if there are multiple layers we only use the first
+                    symbolLayer = categorySymbol.symbolLayers()[0]
+                    fillObject = symbolLayer.fillColor()
+                    strokeObject = symbolLayer.strokeColor()
+
+                    colourValue = str(fillObject.red()) + "," + str(fillObject.green()) + "," + str(fillObject.blue()) + "," + str(fillObject.alpha())
+                    strokeValue = str(strokeObject.red()) + "," + str(strokeObject.green()) + "," + str(strokeObject.blue()) + "," + str(strokeObject.alpha())
+
+                    # populate the dictionary
+                    self.styleDictionary[categoryValue] = {}
+                    self.styleDictionary[categoryValue]['fill'] = colourValue
+                    self.styleDictionary[categoryValue]['stroke'] = strokeValue
+        elif isinstance(renderer, QgsSingleSymbolRenderer):
+            self.styleDictionary = {}
+
+            symbol = renderer.symbol()
+            # get (first) symbol layer - if there are multiple layers we only use the first
+            symbolLayer = symbol.symbolLayers()[0]
+            if symbolLayer.type() == QgsSymbol.Fill:
+                colourValue = ""
+                strokeValue = ""
+                if hasattr(symbolLayer, 'strokeColor'):
+                    strokeStyle = symbolLayer.strokeColor()
+                    strokeValue = str(strokeStyle.red()) + "," + str(strokeStyle.green()) + "," + str(strokeStyle.blue()) + "," + str(strokeStyle.alpha())
+
+                if hasattr(symbolLayer, 'fillColor'):
+                    colourValue = symbolLayer.fillColor()
+                    colourValue = str(colourValue.red()) + "," + str(colourValue.green()) + "," + str(colourValue.blue()) + "," + str(colourValue.alpha())
+                    #QgsMessageLog.logMessage(str(fillValue), "Mosaic Builder", level=Qgis.Info)
+
+                # populate the dictionary
+                self.styleDictionaryExpression = 'single'
+                self.styleDictionary[self.styleDictionaryExpression] = {}
+                self.styleDictionary[self.styleDictionaryExpression]['fill'] = colourValue
+                self.styleDictionary[self.styleDictionaryExpression]['stroke'] = strokeValue 
+
+    
+    def getRenderValueForFeature(self, layer, feature, expressionString):
+        # expressionString could be a field name or an expression
+
+        # Prepare expression context
+        context = QgsExpressionContext()
+        context.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
+        context.setFeature(feature)
+
+        # Evaluate the expression
+        expression = QgsExpression(expressionString)
+        value = expression.evaluate(context)
+
+        return value
+
+
     #--------------------------------------------
     # Selects the features within the box provided and adds/removes them to the mosaic layer
     def selectGeom(self, selectLayer, minX, minY, maxX, maxY):      
@@ -481,22 +556,25 @@ class MosaicBuilder:
                     fid = str(feature.id())  # This is the internal feature ID (primary key)
                     if fid not in fidList:
                         fidList.append(str(fid))
-                        symbol = selectLayer.renderer().symbolForFeature(feature, QgsRenderContext())
+                        self.CalculateStyles(selectLayer, feature)
+                        
+                        #QgsMessageLog.logMessage(str(self.styleDictionary), "Mosaic Builder", level=Qgis.Info)
+                        #QgsMessageLog.logMessage(str(self.styleDictionaryExpression), "Mosaic Builder", level=Qgis.Info)
                         
                         # Access the first symbol layer
                         fillValue = ""
                         strokeValue = ""
-                        for i in range(symbol.symbolLayerCount()):
-                            symbol_layer = symbol.symbolLayer(i)
-
-                            if hasattr(symbol_layer, 'strokeColor'):
-                                strokeStyle = symbol_layer.strokeColor()
-                                strokeValue = str(strokeStyle.red()) + "," + str(strokeStyle.green()) + "," + str(strokeStyle.blue()) + "," + str(strokeStyle.alpha())
-
-                            if hasattr(symbol_layer, 'fillColor'):
-                                fillColor = symbol_layer.fillColor()
-                                fillValue = str(fillColor.red()) + "," + str(fillColor.green()) + "," + str(fillColor.blue()) + "," + str(fillColor.alpha())
-                                #QgsMessageLog.logMessage(str(fillValue), "Mosaic Builder", level=Qgis.Info)
+                        try:
+                            if self.styleDictionaryExpression is not None and self.styleDictionaryExpression == 'single':
+                                fillValue = self.styleDictionary['single']['fill']
+                                strokeValue = self.styleDictionary['single']['stroke']
+                            elif self.styleDictionaryExpression is not None:
+                                styleValue = self.getRenderValueForFeature(selectLayer, feature, self.styleDictionaryExpression)
+                                fillValue = self.styleDictionary[str(styleValue)]['fill']
+                                strokeValue = self.styleDictionary[str(styleValue)]['stroke']
+                        except Exception as e:
+                            #QgsMessageLog.logMessage(f"Edit error: {str(e)}", "Mosaic Builder", level=Qgis.Critical)
+                            pass # If this fails, just fail silently
 
                         fields = self.mosaicLayer.fields()
                         newFeature = QgsFeature()
@@ -532,7 +610,6 @@ class MosaicBuilder:
                 selectLayer.removeSelection()
             except Exception as e:
                 QgsMessageLog.logMessage(f"Edit error: {str(e)}", "Mosaic Builder", level=Qgis.Critical)
-
 
     #--------------------------------------------
     # Reproject the feature as required

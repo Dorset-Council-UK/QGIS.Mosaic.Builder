@@ -20,6 +20,9 @@
     <qresource prefix="/plugins/mosaic_builder" >
         <file>icons/selectArea.png</file>
     </qresource>
+	<qresource prefix="/plugins/mosaic_builder" >
+		<file>icons/cogs.png</file>
+	</qresource>
 
 	<qresource prefix="/plugins/mosaic_builder" >
 		<file>styles/mosaic.qml</file>

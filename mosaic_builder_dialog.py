@@ -26,6 +26,7 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
+from qgis.core import QgsProject, QgsSettings
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -42,3 +43,12 @@ class MosaicBuilderDialog(QtWidgets.QDialog, FORM_CLASS):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+
+        #Ensure the currently selected layer is shown
+        GlobalSettings = QgsSettings()
+        keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
+        if keywordValue is not None and len(QgsProject.instance().mapLayer(keywordValue))>0:
+            self.layerSelectionCombo.setLayer(QgsProject.instance().mapLayer(keywordValue))
+        else:
+            self.layerSelectionCombo.setLayer(None)
+

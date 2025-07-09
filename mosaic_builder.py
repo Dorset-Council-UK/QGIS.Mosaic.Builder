@@ -24,7 +24,7 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
-from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings
+from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings, QgsWkbTypes
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -394,7 +394,7 @@ class MosaicBuilder:
 
         if self.mosaicLayer == None:
             #If we are still null here we need to add a new temporary scratch layer for the plugin to use.
-            layer =  QgsVectorLayer("Polygon?crs=epsg:27700&index=yes", "Vector Mosaic", "memory")
+            layer =  QgsVectorLayer("MultiPolygon?crs=epsg:27700&index=yes", "Vector Mosaic", "memory")
             layerProvider = layer.dataProvider()
             layerProvider.addAttributes([
                 QgsField("Primary_Key", QMetaType.Type.QString),
@@ -445,12 +445,15 @@ class MosaicBuilder:
         #QgsMessageLog.logMessage(str(self.overrideSearchLayer), "Mosaic Builder", level=Qgis.Info)
         if self.overrideSearchLayer:
             #QgsMessageLog.logMessage(str(self.keywordLayer), "Mosaic Builder", level=Qgis.Info)
-            if len(QgsProject.instance().mapLayer(self.keywordLayer))>0:
+            if self.keywordLayer is not None and len(QgsProject.instance().mapLayer(self.keywordLayer))>0:
                 self.currentActiveLayer = QgsProject.instance().mapLayer(self.keywordLayer) 
             else:
                 self.currentActiveLayer = self.iface.activeLayer()
         else:
             self.currentActiveLayer = self.iface.activeLayer()
+
+        if self.currentActiveLayer == None:
+            self.iface.messageBar().pushMessage("WARNING", "To use the tool, please select a layer to copy from or set the default search layer from the menu.", Qgis.Warning)
 
         return self.currentActiveLayer
 
@@ -646,7 +649,11 @@ class MosaicBuilder:
                         newFeature['Fill'] = fillValue
                         newFeature['Border'] = strokeValue
                         newFeature.setGeometry(feature.geometry())
-                        featuresToAdd.append(newFeature)
+
+                        if feature.geometry().type() == QgsWkbTypes.PolygonGeometry:
+                            featuresToAdd.append(newFeature)
+                        else:
+                            self.iface.messageBar().pushMessage("INFO", "A feature couldn't be copied because it was not a polygon.", Qgis.Info)
                     else:
                         featuresToRemove.append(fid)
                         #QgsMessageLog.logMessage(str(featuresToRemove), "Mosaic Builder", level=Qgis.Info)

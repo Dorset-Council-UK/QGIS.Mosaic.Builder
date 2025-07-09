@@ -32,9 +32,9 @@
   <widget class="QgsMapLayerComboBox" name="layerSelectionCombo">
    <property name="geometry">
     <rect>
-     <x>168</x>
+     <x>178</x>
      <y>31</y>
-     <width>301</width>
+     <width>291</width>
      <height>21</height>
     </rect>
    </property>
@@ -47,7 +47,7 @@
     <rect>
      <x>21</x>
      <y>31</y>
-     <width>132</width>
+     <width>151</width>
      <height>16</height>
     </rect>
    </property>

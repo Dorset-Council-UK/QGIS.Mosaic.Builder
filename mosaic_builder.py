@@ -80,6 +80,7 @@ class MosaicBuilder:
         self.mosaicLayer = None
         self.currentDiscSize = 25
         self.currentDiscArcs = False
+        self.colourGrab = True
         self.selectAreaPoint = 0
 
         #Check for layer override in project settings
@@ -437,16 +438,19 @@ class MosaicBuilder:
         #Delete the layers
         QgsProject.instance().removeMapLayers(layersToRemove)
         self.mosaicLayer = None
+        self.iface.actionPan().trigger()
         self.iface.mapCanvas().refresh()
 
     #--------------------------------------------
     # Checks if we should be using the active layer or one specified in the project keywords and uses the appropriate layer
     def GetSearchLayer(self):
+        self.colourGrab = True
         #QgsMessageLog.logMessage(str(self.overrideSearchLayer), "Mosaic Builder", level=Qgis.Info)
         if self.overrideSearchLayer:
             #QgsMessageLog.logMessage(str(self.keywordLayer), "Mosaic Builder", level=Qgis.Info)
             if self.keywordLayer is not None and len(QgsProject.instance().mapLayer(self.keywordLayer))>0:
                 self.currentActiveLayer = QgsProject.instance().mapLayer(self.keywordLayer) 
+                self.colourGrab = False
             else:
                 self.currentActiveLayer = self.iface.activeLayer()
         else:
@@ -622,7 +626,8 @@ class MosaicBuilder:
                     fid = str(feature.id())  # This is the internal feature ID (primary key)
                     if fid not in fidList:
                         fidList.append(str(fid))
-                        self.CalculateStyles(selectLayer, feature)
+                        if self.colourGrab:
+                            self.CalculateStyles(selectLayer, feature)
                         
                         #QgsMessageLog.logMessage(str(self.styleDictionary), "Mosaic Builder", level=Qgis.Info)
                         #QgsMessageLog.logMessage(str(self.styleDictionaryExpression), "Mosaic Builder", level=Qgis.Info)

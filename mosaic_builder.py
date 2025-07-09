@@ -254,12 +254,12 @@ class MosaicBuilder:
         )
 
         #Menu only
-        set_default = self.add_action(
+        set_select_layer = self.add_action(
             icon_path=':/plugins/mosaic_builder/icons/cogs.png',
-            text=self.tr(u'Set default search'),
+            text=self.tr(u'Set selection layer'),
             add_to_menu=True,
             add_to_toolbar=False,
-            callback=self.setDefaultSearchLayer
+            callback=self.setSelectionLayer
         )
         
         # will be set False in run()
@@ -287,7 +287,7 @@ class MosaicBuilder:
         #Reset default snapping option
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexHybrid)
 
-    def setDefaultSearchLayer(self, input2, input3):
+    def setSelectionLayer(self, input2, input3):
         pluginDialog = MosaicBuilderDialog()
         pluginDialog.show()
 
@@ -453,7 +453,7 @@ class MosaicBuilder:
             self.currentActiveLayer = self.iface.activeLayer()
 
         if self.currentActiveLayer == None:
-            self.iface.messageBar().pushMessage("WARNING", "To use the tool, please select a layer to copy from or set the default search layer from the menu.", Qgis.Warning)
+            self.iface.messageBar().pushMessage("WARNING", "To use the tool, please select a layer to copy from or set the default selection layer from the menu.", Qgis.Warning)
 
         return self.currentActiveLayer
 

@@ -23,7 +23,7 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QVariant
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
+from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton
 from qgis.core import QgsProject, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils
 from functools import partial
 
@@ -158,12 +158,7 @@ class MosaicBuilder:
         :rtype: QAction
         """
 
-        icon = QIcon(icon_path)
-        action = QAction(icon, text, parent)
-        if set_checkable:
-            action.setCheckable(True)
-        action.triggered.connect(partial(callback, action))
-        action.setEnabled(enabled_flag)
+        action = self.createAction(icon_path, text, callback, set_checkable, enabled_flag, parent)        
 
         if status_tip is not None:
             action.setStatusTip(status_tip)
@@ -181,6 +176,28 @@ class MosaicBuilder:
                 action)
 
         self.actions.append(action)
+
+        return action
+
+    def createAction(
+        self,
+        icon_path,
+        text,
+        callback,
+        set_checkable=False,
+        enabled_flag=True,
+        parent=None):
+        """Helper function that creates the actions to add to toolbars.
+
+        Normal useage is via add_action
+        """
+        
+        icon = QIcon(icon_path)
+        action = QAction(icon, text, parent)
+        if set_checkable:
+            action.setCheckable(True)
+        action.triggered.connect(partial(callback, action))
+        action.setEnabled(enabled_flag)
 
         return action
 
@@ -209,12 +226,24 @@ class MosaicBuilder:
         )
 
         # Add discs by click button
-        select_point = self.add_action(
+        popupMenu = QMenu(self.iface.mainWindow())
+        
+
+
+
+        discToolButton = QToolButton()
+        discToolButton.setMenu(popupMenu)
+        select_point = self.createAction(
             icon_path=':/plugins/mosaic_builder/icons/disc.png',
             text=self.tr(u'Add disc by click'),
             set_checkable=True,
             callback=self.addDisc
         )
+        discToolButton.setDefaultAction(select_point)
+        discToolButton.setPopupMode(QToolButton.MenuButtonPopup)
+        # Adds plugin icon to Plugins toolbar
+        self.plugin_bar.addWidget(discToolButton)
+        self.iface.addPluginToMenu(self.menu, select_point)
 
         # Add merge button
         merge_features = self.add_action(

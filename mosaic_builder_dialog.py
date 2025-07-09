@@ -49,4 +49,6 @@ class MosaicBuilderDialog(QtWidgets.QDialog, FORM_CLASS):
         keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
         if keywordValue is not None and len(QgsProject.instance().mapLayer(keywordValue))>0:
             self.layerSelectionCombo.setLayer(QgsProject.instance().mapLayer(keywordValue))
+        else:
+            self.layerSelectionCombo.setLayer(None)
 

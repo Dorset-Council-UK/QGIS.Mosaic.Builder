@@ -80,12 +80,9 @@ class MosaicBuilder:
         self.areaTool = areaTool(iface.mapCanvas())
         self.areaTool.canvasClicked.connect(self.selectByArea)
         self.mosaicLayer = None
-        self.currentDiscSize = GlobalSettings.value("mosaicBuilder/radius", 25)
-        if self.currentDiscSize is None:
-            self.currentDiscSize = 25
-        self.currentDiscArcs = GlobalSettings.value("mosaicBuilder/useCurves", None)
-        if self.currentDiscArcs is None:
-            self.currentDiscArcs = False
+        self.currentDiscSize = int(GlobalSettings.value("mosaicBuilder/radius", 25))
+        currentArcSetting = GlobalSettings.value("mosaicBuilder/useCurves", False)
+        self.currentDiscArcs = str(currentArcSetting).lower() == "true" 
         self.colourGrab = True
         self.selectAreaPoint = 0
 
@@ -255,7 +252,7 @@ class MosaicBuilder:
 
         self.radiusSpinbox = QSpinBox()
         self.radiusSpinbox.setRange(5, 5000)
-        self.radiusSpinbox.setValue(25)
+        self.radiusSpinbox.setValue(int(self.currentDiscSize))
         self.radiusSpinbox.valueChanged.connect(self.setRadius)
 
         layout = QHBoxLayout(self.radiusWidget)
@@ -268,7 +265,8 @@ class MosaicBuilder:
 
         self.checkboxCurves = QAction("Use curve geometry")
         self.checkboxCurves.setCheckable(True)
-        self.checkboxCurves.setChecked(False)
+        QgsMessageLog.logMessage(str(self.currentDiscArcs), "Mosaic Builder", level=Qgis.Info)
+        self.checkboxCurves.setChecked(self.currentDiscArcs)
         self.checkboxCurves.triggered.connect(partial(self.setCurve, self.checkboxCurves))
         popupMenu.addAction(self.checkboxCurves)
 
@@ -374,6 +372,15 @@ class MosaicBuilder:
             GlobalSettings.setValue("mosaicBuilder/useCurves",False) 
         self.currentDiscArcs = GlobalSettings.value("mosaicBuilder/useCurves", None)
         #QgsMessageLog.logMessage(str(self.currentDiscArcs), "Mosaic Builder", level=Qgis.Info)
+        if self.currentDiscArcs is None:
+            #This is set to None so we can detect errors, the global setting should be set at this point. 
+            self.iface.messageBar().pushMessage("INFO", "Something went wrong getting the curves setting, using default.", Qgis.Info)
+            self.currentDiscArcs = False
+        else:
+            #Ensure the value is in the correct format
+            currentArcSetting = GlobalSettings.value("mosaicBuilder/useCurves", False)
+            self.currentDiscArcs = str(currentArcSetting).lower() == "true" 
+        
 
     #--------------------------------------------
     # Configure disc radius
@@ -384,6 +391,13 @@ class MosaicBuilder:
             GlobalSettings.setValue("mosaicBuilder/radius",radiusValue)
 
         self.currentDiscSize = GlobalSettings.value("mosaicBuilder/radius", None)
+        if self.currentDiscSize is None:
+            #This is set to None so we can detect errors, the global setting should be set at this point. 
+            self.iface.messageBar().pushMessage("INFO", "Something went wrong getting the disc radius, using default.", Qgis.Info)
+            self.currentDiscSize = 25
+        else:
+            #Ensure the value is in the correct format
+            self.currentDiscSize = int(self.currentDiscSize)
         #QgsMessageLog.logMessage(str(self.currentDiscSize), "Mosaic Builder", level=Qgis.Info)
 
     #--------------------------------------------

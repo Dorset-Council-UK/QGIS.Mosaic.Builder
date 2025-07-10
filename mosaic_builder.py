@@ -23,7 +23,7 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel
+from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton, QWidgetAction, QMainWindow, QSpinBox, QWidget, QHBoxLayout
 from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings, QgsWkbTypes
 from functools import partial
 
@@ -70,6 +70,8 @@ class MosaicBuilder:
         self.plugin_bar = self.iface.addToolBar("Mosaic Builder")
         self.plugin_bar.setObjectName(u'Mosaic Builder')
 
+        GlobalSettings = QgsSettings()
+
         #Define canvas tools
         self.pointTool = pointTool(iface.mapCanvas())
         self.pointTool.canvasClicked.connect(self.selectByClick)
@@ -78,13 +80,13 @@ class MosaicBuilder:
         self.areaTool = areaTool(iface.mapCanvas())
         self.areaTool.canvasClicked.connect(self.selectByArea)
         self.mosaicLayer = None
-        self.currentDiscSize = 25
-        self.currentDiscArcs = False
+        self.currentDiscSize = int(GlobalSettings.value("mosaicBuilder/radius", 25))
+        currentArcSetting = GlobalSettings.value("mosaicBuilder/useCurves", False)
+        self.currentDiscArcs = str(currentArcSetting).lower() == "true" 
         self.colourGrab = True
         self.selectAreaPoint = 0
 
-        #Check for layer override in project settings
-        GlobalSettings = QgsSettings()
+        #Check for layer override in project settings   
         keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
         #QgsMessageLog.logMessage(str(keywordValue), "Mosaic Builder", level=Qgis.Info)
         if keywordValue is not None:
@@ -175,12 +177,7 @@ class MosaicBuilder:
         :rtype: QAction
         """
 
-        icon = QIcon(icon_path)
-        action = QAction(icon, text, parent)
-        if set_checkable:
-            action.setCheckable(True)
-        action.triggered.connect(partial(callback, action))
-        action.setEnabled(enabled_flag)
+        action = self.createAction(icon_path, text, callback, set_checkable, enabled_flag, parent)        
 
         if status_tip is not None:
             action.setStatusTip(status_tip)
@@ -198,6 +195,28 @@ class MosaicBuilder:
                 action)
 
         self.actions.append(action)
+
+        return action
+
+    def createAction(
+        self,
+        icon_path,
+        text,
+        callback,
+        set_checkable=False,
+        enabled_flag=True,
+        parent=None):
+        """Helper function that creates the actions to add to toolbars.
+
+        Normal useage is via add_action
+        """
+        
+        icon = QIcon(icon_path)
+        action = QAction(icon, text, parent)
+        if set_checkable:
+            action.setCheckable(True)
+        action.triggered.connect(partial(callback, action))
+        action.setEnabled(enabled_flag)
 
         return action
 
@@ -226,12 +245,44 @@ class MosaicBuilder:
         )
 
         # Add discs by click button
-        select_point = self.add_action(
+        popupMenu = QMenu(self.iface.mainWindow())
+
+        self.radiusAction = QWidgetAction(self.iface.mainWindow())
+        self.radiusWidget = QWidget()
+
+        self.radiusSpinbox = QSpinBox()
+        self.radiusSpinbox.setRange(5, 5000)
+        self.radiusSpinbox.setValue(int(self.currentDiscSize))
+        self.radiusSpinbox.valueChanged.connect(self.setRadius)
+
+        layout = QHBoxLayout(self.radiusWidget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(QLabel("Radius:"))
+        layout.addWidget(self.radiusSpinbox)
+
+        self.radiusAction.setDefaultWidget(self.radiusWidget)
+        popupMenu.addAction(self.radiusAction)
+
+        self.checkboxCurves = QAction("Use curve geometry")
+        self.checkboxCurves.setCheckable(True)
+        #QgsMessageLog.logMessage(str(self.currentDiscArcs), "Mosaic Builder", level=Qgis.Info)
+        self.checkboxCurves.setChecked(self.currentDiscArcs)
+        self.checkboxCurves.triggered.connect(partial(self.setCurve, self.checkboxCurves))
+        popupMenu.addAction(self.checkboxCurves)
+
+        discToolButton = QToolButton()
+        discToolButton.setMenu(popupMenu)
+        select_point = self.createAction(
             icon_path=':/plugins/mosaic_builder/icons/disc.png',
             text=self.tr(u'Add disc by click'),
             set_checkable=True,
             callback=self.addDisc
         )
+        discToolButton.setDefaultAction(select_point)
+        discToolButton.setPopupMode(QToolButton.MenuButtonPopup)
+        # Adds plugin icon to Plugins toolbar
+        self.plugin_bar.addWidget(discToolButton)
+        self.iface.addPluginToMenu(self.menu, select_point)
 
         # Add merge button
         merge_features = self.add_action(
@@ -279,6 +330,7 @@ class MosaicBuilder:
             self.pointTool.canvasClicked.disconnect(self.selectByClick)
             self.areaTools.canvasClicked.disconnect(self.selectByArea)
             self.discTool.canvasClicked.disconnect(self.bufferByClick)
+            self.radiusSpinbox.disconnect(self.setRadius)
         except:
             pass
 
@@ -310,7 +362,43 @@ class MosaicBuilder:
             else:
                 self.overrideSearchLayer = False
  
+    #--------------------------------------------
+    # Configure to use curves
+    def setCurve(self, checked):
+        GlobalSettings = QgsSettings()
+        if checked.isChecked():
+            GlobalSettings.setValue("mosaicBuilder/useCurves",True) 
+        else:
+            GlobalSettings.setValue("mosaicBuilder/useCurves",False) 
+        self.currentDiscArcs = GlobalSettings.value("mosaicBuilder/useCurves", None)
+        #QgsMessageLog.logMessage(str(self.currentDiscArcs), "Mosaic Builder", level=Qgis.Info)
+        if self.currentDiscArcs is None:
+            #This is set to None so we can detect errors, the global setting should be set at this point. 
+            self.iface.messageBar().pushMessage("INFO", "Something went wrong getting the curves setting, using default.", Qgis.Info)
+            self.currentDiscArcs = False
+        else:
+            #Ensure the value is in the correct format
+            currentArcSetting = GlobalSettings.value("mosaicBuilder/useCurves", False)
+            self.currentDiscArcs = str(currentArcSetting).lower() == "true" 
+        
 
+    #--------------------------------------------
+    # Configure disc radius
+    def setRadius(self, radiusValue):
+        GlobalSettings = QgsSettings()
+
+        if radiusValue is not None:
+            GlobalSettings.setValue("mosaicBuilder/radius",radiusValue)
+
+        self.currentDiscSize = GlobalSettings.value("mosaicBuilder/radius", None)
+        if self.currentDiscSize is None:
+            #This is set to None so we can detect errors, the global setting should be set at this point. 
+            self.iface.messageBar().pushMessage("INFO", "Something went wrong getting the disc radius, using default.", Qgis.Info)
+            self.currentDiscSize = 25
+        else:
+            #Ensure the value is in the correct format
+            self.currentDiscSize = int(self.currentDiscSize)
+        #QgsMessageLog.logMessage(str(self.currentDiscSize), "Mosaic Builder", level=Qgis.Info)
 
     #--------------------------------------------
     # Select tool

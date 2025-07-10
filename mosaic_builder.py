@@ -80,7 +80,7 @@ class MosaicBuilder:
         self.areaTool = areaTool(iface.mapCanvas())
         self.areaTool.canvasClicked.connect(self.selectByArea)
         self.mosaicLayer = None
-        self.currentDiscSize = GlobalSettings.value("mosaicBuilder/radius", None)
+        self.currentDiscSize = GlobalSettings.value("mosaicBuilder/radius", 25)
         if self.currentDiscSize is None:
             self.currentDiscSize = 25
         self.currentDiscArcs = GlobalSettings.value("mosaicBuilder/useCurves", None)

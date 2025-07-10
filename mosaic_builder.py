@@ -265,7 +265,7 @@ class MosaicBuilder:
 
         self.checkboxCurves = QAction("Use curve geometry")
         self.checkboxCurves.setCheckable(True)
-        QgsMessageLog.logMessage(str(self.currentDiscArcs), "Mosaic Builder", level=Qgis.Info)
+        #QgsMessageLog.logMessage(str(self.currentDiscArcs), "Mosaic Builder", level=Qgis.Info)
         self.checkboxCurves.setChecked(self.currentDiscArcs)
         self.checkboxCurves.triggered.connect(partial(self.setCurve, self.checkboxCurves))
         popupMenu.addAction(self.checkboxCurves)

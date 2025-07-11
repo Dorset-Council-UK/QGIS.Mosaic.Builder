@@ -442,8 +442,53 @@ class MosaicBuilder:
     #--------------------------------------------
     # Merge tool
     def mergeFeatures(self, action):
-        #TODO - add this functionality
-        pass
+        if self.mosaicLayer == None:
+            if len(QgsProject.instance().mapLayersByName('Vector Mosaic'))>0:
+                self.mosaicLayer = QgsProject.instance().mapLayersByName('Vector Mosaic')[0] 
+
+        if self.mosaicLayer is not None:
+            features = self.mosaicLayer.getFeatures()
+            geoms = QgsGeometry()
+            PrimaryKeyString = "Not recorded"
+
+            #Create the merged geometry
+            firstRun = True
+            for feature in features:
+                if firstRun == True:
+                    firstRun = False
+                    geoms = feature.geometry()
+                    PrimaryKeyString = feature['Primary_Key']
+                else:
+                    geom = feature.geometry()
+                    if geom:
+                        err = geom.validateGeometry()
+                        if not err:
+                            geoms = geoms.combine(geom)
+                            PKString = PrimaryKeyString + ', ' + feature['Primary_Key']
+                            if len(PKString) > 100:
+                                PrimaryKeyString = "Not recorded - too big"
+                            else:
+                                PrimaryKeyString = PKString
+                        else:
+                            self.iface.messageBar().pushMessage("ERROR", '%d geometry errors detected (feature %d)' % (len(err), feature.id()), Qgis.Critical)
+                            
+            #Delete the existing features
+            self.mosaicLayer.startEditing()
+            for feature in self.mosaicLayer.getFeatures():
+                self.mosaicLayer.deleteFeature(feature.id())
+            self.mosaicLayer.commitChanges()
+
+            #Add the merged geometry back
+            self.mosaicLayer.startEditing()
+            fields = self.mosaicLayer.fields()
+            newFeature = QgsFeature()
+            newFeature.setFields(fields)
+            newFeature['Primary_Key'] = PrimaryKeyString
+            newFeature['Fill'] = ""
+            newFeature['Border'] = ""
+            newFeature.setGeometry(geoms)
+            self.mosaicLayer.addFeature(newFeature)
+            self.mosaicLayer.commitChanges()
 
     #--------------------------------------------
     # Copy tool

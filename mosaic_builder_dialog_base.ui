@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>500</width>
-    <height>118</height>
+    <width>498</width>
+    <height>111</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -53,6 +53,19 @@
    </property>
    <property name="text">
     <string>Select default selection layer:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="ActiveText">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>75</y>
+     <width>261</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Using active (selected) layer unless default is set</string>
    </property>
   </widget>
  </widget>

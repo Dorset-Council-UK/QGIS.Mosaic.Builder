@@ -1,5 +1,5 @@
 # Mosaic Builder
-This is a QGIS plugin designed to provide a simple way for colleagues to pick up features from other layers and use it as part of the plotting process. We have decided to publish this open-source as others may find the tools useful.
+Colleagues in the council sometimes need to derive data from various layers. This tool was put together to create an intuitive flow for our users. We are sharing it open-source as we wonder if it might be helpful to others as well.
 
 # Acknowledgements
 

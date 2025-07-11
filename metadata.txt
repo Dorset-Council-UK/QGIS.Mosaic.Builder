@@ -5,12 +5,12 @@
 [general]
 name=Mosaic Builder
 qgisMinimumVersion=3.0
-description=Copy features across different layers
-version=0.1
+description=Copies features across different layers
+version=1.0
 author=Dorset Council
 email=gis@dorsetcouncil.gov.uk
 
-about=This is a QGIS plugin designed to provide a simple way for colleagues to pick up features from other layers and use it as part of the plotting process.
+about=Colleagues in the council sometimes need to derive data from various layers. This tool was put together to create an intuitive flow for our users. We are sharing it open-source as we wonder if it might be helpful to others as well. 
 
 tracker=https://github.com/Dorset-Council-UK/QGIS.Mosaic.Builder/issues
 repository=https://github.com/Dorset-Council-UK/QGIS.Mosaic.Builder
@@ -25,7 +25,7 @@ hasProcessingProvider=no
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=http://homepage
+homepage=https://github.com/Dorset-Council-UK/QGIS.Mosaic.Builder
 category=Plugins
 icon=icon.png
 # experimental flag

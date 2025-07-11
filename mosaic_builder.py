@@ -278,6 +278,7 @@ class MosaicBuilder:
             set_checkable=True,
             callback=self.addDisc
         )
+        self.actions.append(select_point)
         discToolButton.setDefaultAction(select_point)
         discToolButton.setPopupMode(QToolButton.MenuButtonPopup)
         # Adds plugin icon to Plugins toolbar
@@ -324,8 +325,6 @@ class MosaicBuilder:
                 self.tr(u'&Mosaic Builder'),
                 action)
 
-        del self.plugin_bar
-
         try:
             self.pointTool.canvasClicked.disconnect(self.selectByClick)
             self.areaTools.canvasClicked.disconnect(self.selectByArea)
@@ -333,6 +332,8 @@ class MosaicBuilder:
             self.radiusSpinbox.disconnect(self.setRadius)
         except:
             pass
+
+        del self.plugin_bar
 
         #Ensure the plotting layer is removed
         self.removeDrawingLayer()
@@ -352,7 +353,7 @@ class MosaicBuilder:
             if pluginDialog.layerSelectionCombo.currentLayer() == None:
                 GlobalSettings.setValue("mosaicBuilder/searchLayer",None)
             else:
-                GlobalSettings.setValue("mosaicBuilder/searchLayer",pluginDialog.layerSelectionCombo.currentLayer().id())   
+                GlobalSettings.setValue("mosaicBuilder/searchLayer",pluginDialog.layerSelectionCombo.currentLayer().id())  
 
             keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
             #QgsMessageLog.logMessage(str(keywordValue), "Mosaic Builder", level=Qgis.Info)
@@ -521,6 +522,13 @@ class MosaicBuilder:
     #--------------------------------------------
     # Add temporary layer
     def addDrawingLayer(self):
+        # With great power comes great responsibility
+        GlobalSettings = QgsSettings()
+        firstUse = GlobalSettings.value("mosaicBuilder/firstUse",None)
+        if firstUse is None:
+            GlobalSettings.setValue("mosaicBuilder/firstUse",False)
+            self.iface.messageBar().pushMessage("INFO", "Mosaic Builder lets you copy from other layers—just make sure you’ve got permission first.", Qgis.Info)
+
         #If the mosaic layer is none, we look to see if it is already in the map
         if self.mosaicLayer == None:
             if len(QgsProject.instance().mapLayersByName('Vector Mosaic'))>0:

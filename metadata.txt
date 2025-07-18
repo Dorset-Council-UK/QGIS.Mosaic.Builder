@@ -1,33 +1,31 @@
-# This file contains metadata for your plugin.
-
-# This file should be included when you package your plugin.# Mandatory items:
+# Metadata for plugin
+# Mandatory items:
 
 [general]
 name=Mosaic Builder
 qgisMinimumVersion=3.0
-description=Copies features across different layers
+description=Copy features from different layers and merge them together quickly and easily
 version=1.0
 author=Dorset Council
 email=gis@dorsetcouncil.gov.uk
-
-about=Colleagues in the council sometimes need to derive data from various layers. This tool was put together to create an intuitive flow for our users. We are sharing it open-source as we wonder if it might be helpful to others as well. 
-
+about=Mosaic Builder allows users to copy polygon features from various layers in their project and merge them together with a simple interface. Choose a layer or use your currently active layer, select each bit you want, and hit merge to dissolve the features together.
 tracker=https://github.com/Dorset-Council-UK/QGIS.Mosaic.Builder/issues
 repository=https://github.com/Dorset-Council-UK/QGIS.Mosaic.Builder
+
 # End of mandatory metadata
 
 # Recommended items:
 
 hasProcessingProvider=no
-# Uncomment the following line and add your changelog:
-# changelog=
+changelog=
+    1.0.0
+    - Initial release
 
 # Tags are comma separated with spaces allowed
-tags=python
-
+tags=python,vector,feature,feature extraction,polygon
 homepage=https://github.com/Dorset-Council-UK/QGIS.Mosaic.Builder
-category=Plugins
-icon=icon.png
+category=Vector
+icon=icon.svg
 # experimental flag
 experimental=False
 
@@ -44,4 +42,3 @@ Category of the plugin: Raster, Vector, Database or Web
 
 # If the plugin can run on QGIS Server.
 server=False
-

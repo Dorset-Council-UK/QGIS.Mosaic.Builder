@@ -31,7 +31,7 @@ class MosaicBuilderDialogTest(unittest.TestCase):
 
     def test_icon_png(self):
         """Test we can click OK."""
-        path = ':/plugins/MosaicBuilder/icon.png'
+        path = ':/plugins/MosaicBuilder/icon.svg'
         icon = QIcon(path)
         self.assertFalse(icon.isNull())
 

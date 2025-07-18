@@ -23,6 +23,9 @@
 	<qresource prefix="/plugins/mosaic_builder" >
 		<file>icons/cogs.png</file>
 	</qresource>
+	<qresource prefix="/plugins/mosaic_builder" >
+		<file>icons/help.png</file>
+	</qresource>
 
 	<qresource prefix="/plugins/mosaic_builder" >
 		<file>styles/mosaic.qml</file>

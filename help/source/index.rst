@@ -3,75 +3,78 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to MosaicBuilder's documentation!
+Using Mosaic Builder
 ============================================
 
-This plugin has been developed to create an easy workflow for users to select features from one layer and copy them to another.
+.. |select_icon| image:: _static/icons/select.png
+   :width: 32px
+   :height: 32px
 
-Rather than just doing copy and paste, the user can add them to a temporary layer and edit / merge them before copying them to the clipboard any back to another layer. 
+.. |selectArea_icon| image:: _static/icons/selectArea.png
+   :width: 32px
+   :height: 32px
 
-Steps:
+.. |disc_icon| image:: _static/icons/disc.png
+   :width: 32px
+   :height: 32px
 
-- Select features from the currently selected layer (or fix the layer using the menu). There are three options:
+.. |merge_icon| image:: _static/icons/merge.png
+   :width: 32px
+   :height: 32px
 
- - Select by clicking (feature by feature)
+.. |copy_icon| image:: _static/icons/copy.png
+   :width: 32px
+   :height: 32px
 
-  .. image:: _static/icons/select.png
-     :width: 16px
-     :height: 16px
-     :align: left
-     :alt: Select by point icon 
-     
-  
- - Select by area (box or polygon)
+.. |clear_icon| image:: _static/icons/clear.png
+   :width: 32px
+   :height: 32px
 
-  .. image:: _static/icons/selectArea.png
-     :width: 16px
-     :height: 16px
-     :align: left
-     :alt: Select by area icon
+.. |cogs_icon| image:: _static/icons/cogs.png
+   :width: 32px
+   :height: 32px
 
- - Add a circle/disc buffer at the point you clicked
+.. note::
+   
+   This plugin assumes you have permission to copy from the source layers
 
-  .. image:: _static/icons/disc.png
-     :width: 16px
-     :height: 16px
-     :align: left
-     :alt: Add circle icon
+This plugin is designed to streamline the workflow for selecting features from one layer and copying them to another.
 
-- You can now edit the vector mosaic using the normal editing tools or merge it to make a single feature (loses the colours). Click the merge tool if required
+Instead of simply copying and pasting, users can add selected features to a temporary layer, where they can edit or merge them before copying them to the clipboard and pasting them into another layer.
 
- .. image:: _static/icons/merge.png
-     :width: 16px
-     :height: 16px
-     :align: left
-     :alt: Merge features icon
+Workflow Steps:
 
-- Finally you can copy the features to the clipboard
+1. Select features from the active layer (or fix a specific layer using the menu). There are three selection methods:
 
- .. image:: _static/icons/copy.png
-     :width: 16px
-     :height: 16px
-     :align: left
-     :alt: Copy features icon
+	* Use |select_icon| to select by clicking (feature by feature)
 
-To remove the temporary layer you should use the delete icon.
+	* Use |selectArea_icon| to select by area (box or polygon)
 
-.. image:: _static/icons/clear.png
-     :width: 16px
-     :height: 16px
-     :align: left
-     :alt: Delete all icon
+	* Use |disc_icon| to add a circular buffer at the clicked point 
 
-Contents:
+2. You can edit the temporary vector layer using standard editing tools if you want. 
 
-.. toctree::
-   :maxdepth: 2
+3. Use |merge_icon| to merge all the features into a single feature (note: this will remove individual feature colors)
 
-Indices and tables
-==================
+4. Use |copy_icon| to copy the features to the clipboard using the copy tool:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+5. Use |clear_icon| to remove the temporary layer when finished by clicking the delete icon:
 
+Menu functions
+============================================
+
+We've kept settings to a minimum to make this tool as easy to use as possible. However, there are two key options you might want to adjust.
+
+By default, the tool selects features from the currently active layer. This means you can pick a few polygons from one layer, then switch to another layer and keep selecting without changing any settings.
+
+If you prefer to always select from a specific layer, click the |cogs_icon| in the menu.
+
+This lets you choose a fixed source layer from your project.
+
+You can also customise the disc tool, which adds circles with a fixed radius. Click the dropdown next to the |disc_icon| icon to adjust either:
+
+* Radius (in map units)
+
+* Use curves/arcs (off by default, since some datasets don't support them)
+
+We've placed these options in the dropdown to keep things simple and easy to find.

@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/plugins/mosaic_builder" >
-        <file>icon.png</file>
+        <file>icon.svg</file>
     </qresource>
     <qresource prefix="/plugins/mosaic_builder" >
         <file>icons/clear.png</file>

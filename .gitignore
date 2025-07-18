@@ -208,6 +208,10 @@ __marimo__/
 
 # Handle Visual Studio
 /.vs
-# Other
-resources.py
+# Other files specific to developers
 Compile_publish.bat
+
+# Remove generated files (help and language files)
+resources.py
+help
+i18n

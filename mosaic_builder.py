@@ -21,11 +21,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer, QUrl
+from qgis.PyQt.QtGui import QIcon, QDesktopServices
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton, QWidgetAction, QMainWindow, QSpinBox, QWidget, QHBoxLayout
 from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings, QgsWkbTypes
-from qgis.utils import showPluginHelp
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -351,7 +350,9 @@ class MosaicBuilder:
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexHybrid)
 
     def openHelp(self, *args):
-        showPluginHelp(packageName='mosaic_builder', section='help', filename='index.html')
+        help_path = os.path.join(os.path.dirname(__file__), 'help', 'index.html')
+        url = QUrl.fromLocalFile(help_path)
+        QDesktopServices.openUrl(url)
 
     def setSelectionLayer(self, input2, input3):
         pluginDialog = MosaicBuilderDialog()

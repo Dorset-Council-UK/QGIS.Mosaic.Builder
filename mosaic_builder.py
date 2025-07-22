@@ -21,8 +21,8 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer, QUrl
+from qgis.PyQt.QtGui import QIcon, QDesktopServices
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton, QWidgetAction, QMainWindow, QSpinBox, QWidget, QHBoxLayout
 from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings, QgsWkbTypes
 from functools import partial
@@ -314,6 +314,14 @@ class MosaicBuilder:
             add_to_toolbar=False,
             callback=self.setSelectionLayer
         )
+
+        open_help = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/help.png',
+            text=self.tr(u'Help'),
+            add_to_menu=True,
+            add_to_toolbar=False,
+            callback=self.openHelp
+        )
         
         # will be set False in run()
         self.first_start = True
@@ -340,6 +348,11 @@ class MosaicBuilder:
 
         #Reset default snapping option
         self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexHybrid)
+
+    def openHelp(self, *args):
+        help_path = os.path.join(os.path.dirname(__file__), 'help', 'index.html')
+        url = QUrl.fromLocalFile(help_path)
+        QDesktopServices.openUrl(url)
 
     def setSelectionLayer(self, input2, input3):
         pluginDialog = MosaicBuilderDialog()

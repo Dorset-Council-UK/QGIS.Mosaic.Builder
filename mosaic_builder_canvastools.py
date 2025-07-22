@@ -60,7 +60,7 @@ class areaTool(QgsMapToolEmitPoint):
         self.canvas = canvas
         QgsMapToolEmitPoint.__init__(self, self.canvas)
         self.rubberBand = QgsRubberBand(self.canvas, QgsWkbTypes.PolygonGeometry)
-        self.rubberBand.setColor(QColor(181, 230, 29))
+        self.rubberBand.setColor(QColor(181, 230, 29, 128))
         self.rubberBand.setWidth(1)
         self.reset()
 

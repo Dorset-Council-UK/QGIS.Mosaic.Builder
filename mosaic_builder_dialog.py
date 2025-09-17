@@ -26,6 +26,7 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
+from qgis.core import QgsProject, QgsSettings, QgsMessageLog, Qgis
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -42,3 +43,30 @@ class MosaicBuilderDialog(QtWidgets.QDialog, FORM_CLASS):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+
+        self.layerSelectionCombo.layerChanged.connect(self.updateLabelText)
+
+        #Ensure the currently selected layer is shown
+        GlobalSettings = QgsSettings()
+        keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
+        if keywordValue is not None:
+            selectedLayers = QgsProject.instance().mapLayer(keywordValue)
+            #QgsMessageLog.logMessage(str(len(selectedLayers)), "Mosaic Builder", level=Qgis.Info)
+            if selectedLayers is not None and len(selectedLayers)>0:
+                self.layerSelectionCombo.setLayer(QgsProject.instance().mapLayer(keywordValue))
+            else:
+                self.layerSelectionCombo.setLayer(None)
+        else:
+            self.layerSelectionCombo.setLayer(None)
+
+        self.updateLabelText()
+
+    def unload(self):
+        self.layerSelectionCombo.layerChanged.disconnect(self.updateLabelText)
+
+    def updateLabelText(self):
+        if self.layerSelectionCombo.currentLayer() is not None:
+            self.ActiveText.setText("")
+        else:
+            self.ActiveText.setText("Using active (selected) layer unless default is set")
+

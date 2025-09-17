@@ -471,14 +471,14 @@ class MosaicBuilder:
                 if firstRun == True:
                     firstRun = False
                     geoms = feature.geometry()
-                    PrimaryKeyString = feature['Primary_Key']
+                    PrimaryKeyString = feature['Primary_Key'] if feature['Primary_Key'] is not None else 'NoKey'
                 else:
                     geom = feature.geometry()
                     if geom:
                         err = geom.validateGeometry()
                         if not err:
                             geoms = geoms.combine(geom)
-                            PKString = PrimaryKeyString + ', ' + feature['Primary_Key']
+                            PKString = PrimaryKeyString + ', ' + feature['Primary_Key'] if feature['Primary_Key'] is not None else 'NoKey'
                             if len(PKString) > 100:
                                 PrimaryKeyString = "Not recorded - too big"
                             else:

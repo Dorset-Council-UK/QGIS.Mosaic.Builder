@@ -777,7 +777,13 @@ class MosaicBuilder:
                 featuresToAdd = []
                 featuresToRemove = []
                 for feature in selectLayer.selectedFeatures():
-                    fid = str(feature.id())  # This is the internal feature ID (primary key)
+                    provider = selectLayer.dataProvider()
+                    pkey_field = provider.pkAttributeIndexes()
+                    pkey_field_names = [selectLayer.fields()[i].name() for i in pkey_field]
+                    if len(pkey_field_names) > 0:
+                        fid = str([feature[name] for name in pkey_field_names]) # This is the defined primary key for the layer if known
+                    else:
+                        fid = str(feature.id())  # This is the internal feature ID (primary key)
                     if fid not in fidList:
                         fidList.append(str(fid))
                         if self.colourGrab:

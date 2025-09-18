@@ -5,7 +5,7 @@
 name=Mosaic Builder
 qgisMinimumVersion=3.0
 description=Copy features from different layers and merge them together quickly and easily
-version=1.0
+version=1.0.1
 author=Dorset Council
 email=gis@dorsetcouncil.gov.uk
 
@@ -22,6 +22,9 @@ hasProcessingProvider=no
 changelog=
     1.0.0
     - Initial release
+
+    1.0.1
+    - Fixed issue preventing merge of features without primary key
 
 # Tags are comma separated with spaces allowed
 tags=python,vector,feature,feature extraction,polygon

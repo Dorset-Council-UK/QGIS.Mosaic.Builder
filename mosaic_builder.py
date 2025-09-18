@@ -21,6 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+from encodings.punycode import T
 from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer, QUrl
 from qgis.PyQt.QtGui import QIcon, QDesktopServices
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton, QWidgetAction, QMainWindow, QSpinBox, QWidget, QHBoxLayout
@@ -471,14 +472,14 @@ class MosaicBuilder:
                 if firstRun == True:
                     firstRun = False
                     geoms = feature.geometry()
-                    PrimaryKeyString = feature['Primary_Key']
+                    PrimaryKeyString = feature['Primary_Key'] if feature['Primary_Key'] is not None else 'NoKey'
                 else:
                     geom = feature.geometry()
                     if geom:
                         err = geom.validateGeometry()
                         if not err:
                             geoms = geoms.combine(geom)
-                            PKString = PrimaryKeyString + ', ' + feature['Primary_Key']
+                            PKString = PrimaryKeyString + ', ' + feature['Primary_Key'] if feature['Primary_Key'] is not None else 'NoKey'
                             if len(PKString) > 100:
                                 PrimaryKeyString = "Not recorded - too big"
                             else:
@@ -777,7 +778,18 @@ class MosaicBuilder:
                 featuresToAdd = []
                 featuresToRemove = []
                 for feature in selectLayer.selectedFeatures():
-                    fid = str(feature.id())  # This is the internal feature ID (primary key)
+                    try:
+                        provider = selectLayer.dataProvider()
+                        pkey_field = provider.pkAttributeIndexes()
+                        pkey_field_names = [selectLayer.fields()[i].name() for i in pkey_field]
+                        if len(pkey_field_names) > 0:
+                            fid = str([feature[name] for name in pkey_field_names]) # This is the defined primary key for the layer if known
+                        else:
+                            fid = str(feature.id())  # This is the internal feature ID (not primary key)
+                    except:
+                        # Something went wrong, just use the internal feature ID
+                        fid = str(feature.id()) 
+ 
                     if fid not in fidList:
                         fidList.append(str(fid))
                         if self.colourGrab:

@@ -236,6 +236,7 @@ class MosaicBuilder:
             set_checkable=True,
             callback=self.selectFeature
         )
+        select_feature.setObjectName(u'mosaicSelect')
 
         #Select features by drag tool
         select_features = self.add_action(
@@ -244,6 +245,7 @@ class MosaicBuilder:
             set_checkable=True,
             callback=self.selectArea
         )
+        select_features.setObjectName(u'mosaicArea')
 
         # Add discs by click button
         popupMenu = QMenu(self.iface.mainWindow())
@@ -279,6 +281,7 @@ class MosaicBuilder:
             set_checkable=True,
             callback=self.addDisc
         )
+        select_point.setObjectName(u'mosaicDisc')
         self.actions.append(select_point)
         discToolButton.setDefaultAction(select_point)
         discToolButton.setPopupMode(QToolButton.MenuButtonPopup)
@@ -292,6 +295,7 @@ class MosaicBuilder:
             text=self.tr(u'Merge selected features'),
             callback=self.mergeFeatures
         )
+        merge_features.setObjectName(u'mosaicMerge')
 
         # Add copy button
         copy_mosaic = self.add_action(
@@ -299,6 +303,7 @@ class MosaicBuilder:
             text=self.tr(u'Copy to clipboard'),
             callback=self.copyMosaic
         )
+        copy_mosaic.setObjectName(u'mosaicCopy')
 
         # Add delete button
         reset_mosaic = self.add_action(
@@ -306,6 +311,7 @@ class MosaicBuilder:
             text=self.tr(u'Remove current vector mosaic'),
             callback=self.clearMosaic
         )
+        reset_mosaic.setObjectName(u'mosaicReset')
 
         #Menu only
         set_select_layer = self.add_action(
@@ -315,6 +321,7 @@ class MosaicBuilder:
             add_to_toolbar=False,
             callback=self.setSelectionLayer
         )
+        set_select_layer.setObjectName(u'mosaicConfig')
 
         open_help = self.add_action(
             icon_path=':/plugins/mosaic_builder/icons/help.png',
@@ -323,6 +330,7 @@ class MosaicBuilder:
             add_to_toolbar=False,
             callback=self.openHelp
         )
+        open_help.setObjectName(u'mosaicHelp')
         
         # will be set False in run()
         self.first_start = True

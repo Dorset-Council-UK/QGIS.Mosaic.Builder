@@ -613,11 +613,12 @@ class MosaicBuilder:
             #QgsMessageLog.logMessage(str(self.keywordLayer), "Mosaic Builder", level=Qgis.Info)
 
             # Resolve the keyword default layer ID using name instead of just ID
-            layerID = self.keywordLayer
+            layerID = self.keywordLayer # We don't know for certain if this is already a layer ID or a name?
+            # If we can match the value by name then we don't have the ID
             if len(QgsProject.instance().mapLayersByName(self.keywordLayer))>0:
-                layerID = QgsProject.instance().mapLayersByName(self.keywordLayer)[0].id() 
+                layerID = QgsProject.instance().mapLayersByName(self.keywordLayer)[0].id() # replac layerID with the actual ID
 
-            # Now we collect the layer
+            # Now we collect the layer using the ID (not the name)
             if self.keywordLayer is not None and QgsProject.instance().mapLayer(layerID) is not None:
                 self.currentActiveLayer = QgsProject.instance().mapLayer(layerID) 
                 self.colourGrab = False

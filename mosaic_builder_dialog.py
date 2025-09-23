@@ -49,11 +49,17 @@ class MosaicBuilderDialog(QtWidgets.QDialog, FORM_CLASS):
         #Ensure the currently selected layer is shown
         GlobalSettings = QgsSettings()
         keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
-        if keywordValue is not None:
-            selectedLayers = QgsProject.instance().mapLayer(keywordValue)
+
+        # Resolve the keyword default layer ID using name instead of just ID
+        layerID = keywordValue
+        if len(QgsProject.instance().mapLayersByName(keywordValue))>0:
+            layerID = QgsProject.instance().mapLayersByName(keywordValue)[0].id() 
+
+        if layerID is not None:
+            selectedLayers = QgsProject.instance().mapLayer(layerID)
             #QgsMessageLog.logMessage(str(len(selectedLayers)), "Mosaic Builder", level=Qgis.Info)
-            if selectedLayers is not None and len(selectedLayers)>0:
-                self.layerSelectionCombo.setLayer(QgsProject.instance().mapLayer(keywordValue))
+            if selectedLayers is not None:
+                self.layerSelectionCombo.setLayer(QgsProject.instance().mapLayer(layerID))
             else:
                 self.layerSelectionCombo.setLayer(None)
         else:

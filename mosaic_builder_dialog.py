@@ -58,7 +58,7 @@ class MosaicBuilderDialog(QtWidgets.QDialog, FORM_CLASS):
         if layerID is not None:
             selectedLayers = QgsProject.instance().mapLayer(layerID)
             #QgsMessageLog.logMessage(str(len(selectedLayers)), "Mosaic Builder", level=Qgis.Info)
-            if selectedLayers is not None and selectedLayers is not None:
+            if selectedLayers is not None:
                 self.layerSelectionCombo.setLayer(QgsProject.instance().mapLayer(layerID))
             else:
                 self.layerSelectionCombo.setLayer(None)

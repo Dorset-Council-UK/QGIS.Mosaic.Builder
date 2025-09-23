@@ -375,7 +375,7 @@ class MosaicBuilder:
             if pluginDialog.layerSelectionCombo.currentLayer() == None:
                 GlobalSettings.setValue("mosaicBuilder/searchLayer",None)
             else:
-                GlobalSettings.setValue("mosaicBuilder/searchLayer",pluginDialog.layerSelectionCombo.currentLayer().id())  
+                GlobalSettings.setValue("mosaicBuilder/searchLayer",pluginDialog.layerSelectionCombo.currentLayer().name())  
 
             keywordValue = GlobalSettings.value("mosaicBuilder/searchLayer", None)
             #QgsMessageLog.logMessage(str(keywordValue), "Mosaic Builder", level=Qgis.Info)
@@ -611,8 +611,15 @@ class MosaicBuilder:
         #QgsMessageLog.logMessage(str(self.overrideSearchLayer), "Mosaic Builder", level=Qgis.Info)
         if self.overrideSearchLayer:
             #QgsMessageLog.logMessage(str(self.keywordLayer), "Mosaic Builder", level=Qgis.Info)
-            if self.keywordLayer is not None and len(QgsProject.instance().mapLayer(self.keywordLayer))>0:
-                self.currentActiveLayer = QgsProject.instance().mapLayer(self.keywordLayer) 
+
+            # Resolve the keyword default layer ID using name instead of just ID
+            layerID = self.keywordLayer
+            if len(QgsProject.instance().mapLayersByName(self.keywordLayer))>0:
+                layerID = QgsProject.instance().mapLayersByName(self.keywordLayer)[0].id() 
+
+            # Now we collect the layer
+            if self.keywordLayer is not None and QgsProject.instance().mapLayer(layerID) is not None:
+                self.currentActiveLayer = QgsProject.instance().mapLayer(layerID) 
                 self.colourGrab = False
             else:
                 self.currentActiveLayer = self.iface.activeLayer()

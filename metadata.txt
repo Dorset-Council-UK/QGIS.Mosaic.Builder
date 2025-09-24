@@ -33,7 +33,7 @@ changelog=
     - Set default layer now using name rather than layer ID as this is often consistent between projects
 
     1.0.4
-    - Fixed issue preventing you from unsetting the default layer
+    - Fixed issue preventing you from unsetting the default layer, also filters the layer list to exclude WMS
 
 # Tags are comma separated with spaces allowed
 tags=python,vector,feature,feature extraction,polygon

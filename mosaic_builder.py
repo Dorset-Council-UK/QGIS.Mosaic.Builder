@@ -372,8 +372,9 @@ class MosaicBuilder:
         # See if OK was pressed
         if result:
             GlobalSettings = QgsSettings()
+            #QgsMessageLog.logMessage(str(pluginDialog.layerSelectionCombo.currentLayer()), "Mosaic Builder", level=Qgis.Info)
             if pluginDialog.layerSelectionCombo.currentLayer() == None:
-                GlobalSettings.setValue("mosaicBuilder/searchLayer",None)
+                GlobalSettings.setValue("mosaicBuilder/searchLayer","")
             else:
                 GlobalSettings.setValue("mosaicBuilder/searchLayer",pluginDialog.layerSelectionCombo.currentLayer().name())  
 

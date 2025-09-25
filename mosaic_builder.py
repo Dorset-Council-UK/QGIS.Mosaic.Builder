@@ -383,6 +383,11 @@ class MosaicBuilder:
             if keywordValue is not None:
                 self.overrideSearchLayer = True
                 self.keywordLayer = keywordValue
+
+                # Reset the style dictionary
+                self.styleId = -1 #layer ID of the currently cached style dictionary
+                self.styleDictionary = {} #The actual cached dictionary for the layer 
+                self.styleDictionaryExpression = None
             else:
                 self.overrideSearchLayer = False
  

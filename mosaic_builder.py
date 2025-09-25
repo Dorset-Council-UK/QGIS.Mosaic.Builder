@@ -372,8 +372,9 @@ class MosaicBuilder:
         # See if OK was pressed
         if result:
             GlobalSettings = QgsSettings()
+            #QgsMessageLog.logMessage(str(pluginDialog.layerSelectionCombo.currentLayer()), "Mosaic Builder", level=Qgis.Info)
             if pluginDialog.layerSelectionCombo.currentLayer() == None:
-                GlobalSettings.setValue("mosaicBuilder/searchLayer",None)
+                GlobalSettings.setValue("mosaicBuilder/searchLayer","")
             else:
                 GlobalSettings.setValue("mosaicBuilder/searchLayer",pluginDialog.layerSelectionCombo.currentLayer().name())  
 
@@ -382,6 +383,11 @@ class MosaicBuilder:
             if keywordValue is not None:
                 self.overrideSearchLayer = True
                 self.keywordLayer = keywordValue
+
+                # Reset the style dictionary
+                self.styleId = -1 #layer ID of the currently cached style dictionary
+                self.styleDictionary = {} #The actual cached dictionary for the layer 
+                self.styleDictionaryExpression = None
             else:
                 self.overrideSearchLayer = False
  

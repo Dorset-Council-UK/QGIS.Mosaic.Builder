@@ -24,7 +24,7 @@
 from encodings.punycode import T
 from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer, QUrl
 from qgis.PyQt.QtGui import QIcon, QDesktopServices
-from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton, QWidgetAction, QMainWindow, QSpinBox, QWidget, QHBoxLayout
+from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton, QWidgetAction, QMainWindow, QDoubleSpinBox, QWidget, QHBoxLayout
 from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings, QgsWkbTypes
 from functools import partial
 
@@ -81,7 +81,7 @@ class MosaicBuilder:
         self.areaTool = areaTool(iface.mapCanvas())
         self.areaTool.canvasClicked.connect(self.selectByArea)
         self.mosaicLayer = None
-        self.currentDiscSize = int(GlobalSettings.value("mosaicBuilder/radius", 25))
+        self.currentDiscSize = float(GlobalSettings.value("mosaicBuilder/radius", 25))
         currentArcSetting = GlobalSettings.value("mosaicBuilder/useCurves", False)
         self.currentDiscArcs = str(currentArcSetting).lower() == "true" 
         self.colourGrab = True
@@ -253,9 +253,10 @@ class MosaicBuilder:
         self.radiusAction = QWidgetAction(self.iface.mainWindow())
         self.radiusWidget = QWidget()
 
-        self.radiusSpinbox = QSpinBox()
-        self.radiusSpinbox.setRange(5, 5000)
-        self.radiusSpinbox.setValue(int(self.currentDiscSize))
+        self.radiusSpinbox = QDoubleSpinBox()
+        self.radiusSpinbox.setRange(1, 5000)
+        self.radiusSpinbox.setSingleStep(0.25)
+        self.radiusSpinbox.setValue(self.currentDiscSize)
         self.radiusSpinbox.valueChanged.connect(self.setRadius)
 
         layout = QHBoxLayout(self.radiusWidget)
@@ -426,7 +427,7 @@ class MosaicBuilder:
             self.currentDiscSize = 25
         else:
             #Ensure the value is in the correct format
-            self.currentDiscSize = int(self.currentDiscSize)
+            self.currentDiscSize = float(self.currentDiscSize)
         #QgsMessageLog.logMessage(str(self.currentDiscSize), "Mosaic Builder", level=Qgis.Info)
 
     #--------------------------------------------

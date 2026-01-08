@@ -80,6 +80,8 @@ class MosaicBuilder:
         self.discTool.canvasClicked.connect(self.bufferByClick)
         self.areaTool = areaTool(iface.mapCanvas())
         self.areaTool.canvasClicked.connect(self.selectByArea)
+        self.removeTool = pointTool(iface.mapCanvas())
+        self.removeTool.canvasClicked.connect(self.removeByClick)
         self.mosaicLayer = None
         self.currentDiscSize = float(GlobalSettings.value("mosaicBuilder/radius", 25))
         currentArcSetting = GlobalSettings.value("mosaicBuilder/useCurves", False)
@@ -290,6 +292,15 @@ class MosaicBuilder:
         self.plugin_bar.addWidget(discToolButton)
         self.iface.addPluginToMenu(self.menu, select_point)
 
+        # Add disc removal button
+        remove_feature = self.add_action(
+            icon_path=':/plugins/mosaic_builder/icons/remove.png',
+            text=self.tr(u'Remove feature by click'),
+            set_checkable=True,
+            callback=self.removeFeature
+        )
+        remove_feature.setObjectName(u'mosaicRemove')
+
         # Add merge button
         merge_features = self.add_action(
             icon_path=':/plugins/mosaic_builder/icons/merge.png',
@@ -347,6 +358,7 @@ class MosaicBuilder:
             self.pointTool.canvasClicked.disconnect(self.selectByClick)
             self.areaTools.canvasClicked.disconnect(self.selectByArea)
             self.discTool.canvasClicked.disconnect(self.bufferByClick)
+            self.removeTool.canvasClicked.disconnect(self.removeByClick)
             self.radiusSpinbox.disconnect(self.setRadius)
         except:
             pass
@@ -468,6 +480,19 @@ class MosaicBuilder:
         callingAction = action.sender()
         if callingAction:
             callingAction.setChecked(True)  
+
+    #--------------------------------------------
+    # Remove feature tool
+    def removeFeature(self, action):
+        #Ensure the plotting layer is present
+        self.addDrawingLayer()
+
+        #Enable the removal tool
+        self.iface.mapCanvas().setMapTool(self.removeTool)
+        self.removeTool.deactivated.connect(partial(self.toggleChecked, action))
+        callingAction = action.sender()
+        if callingAction:
+            callingAction.setChecked(True)
 
     #--------------------------------------------
     # Merge tool
@@ -685,6 +710,36 @@ class MosaicBuilder:
                 QApplication.processEvents()
             else:
                 self.iface.messageBar().pushMessage("WARNING", "Sorry, we were unable to add a buffered circle to the mosaic layer", Qgis.Warning)
+
+
+    #--------------------------------------------
+    # Removes the feature clicked from the mosaic layer
+    def removeByClick(self, event, button):
+        if self.mosaicLayer == None:
+            self.iface.messageBar().pushMessage("WARNING", "Sorry, no mosaic layer found to remove features from", Qgis.Warning)
+        else:
+            self.iface.setActiveLayer(self.mosaicLayer)
+            self.mosaicLayer.startEditing()
+
+            # Define a small buffer around the click point to identify features
+            buffer = 0.001
+            clickRect = QgsRectangle(event.x() - buffer, event.y() - buffer, event.x() + buffer, event.y() + buffer)
+            
+            # Get features that intersect with the click point
+            featuresToRemove = []
+            for feature in self.mosaicLayer.getFeatures():
+                if feature.geometry().intersects(QgsGeometry.fromRect(clickRect)):
+                    featuresToRemove.append(feature.id())
+            
+            if len(featuresToRemove) > 0:
+                # Remove the first feature found at the click point
+                self.mosaicLayer.deleteFeature(featuresToRemove[0])
+                self.mosaicLayer.commitChanges()
+                self.iface.mapCanvas().refresh()
+                QApplication.processEvents()
+            else:
+                self.mosaicLayer.rollBack()
+                self.iface.messageBar().pushMessage("INFO", "No feature found at the clicked location", Qgis.Info)
 
 
     #--------------------------------------------

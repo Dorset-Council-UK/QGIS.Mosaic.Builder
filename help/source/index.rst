@@ -18,6 +18,10 @@ Using Mosaic Builder
    :width: 32px
    :height: 32px
 
+.. |remove_icon| image:: _static/icons/remove.png
+   :width: 32px
+   :height: 32px
+
 .. |merge_icon| image:: _static/icons/merge.png
    :width: 32px
    :height: 32px
@@ -51,6 +55,8 @@ Workflow Steps:
 	* Use |selectArea_icon| to select by area (box or polygon)
 
 	* Use |disc_icon| to add a circular buffer at the clicked point 
+
+   * Use |remove_icon| to remove features from the temporary layer by clicking on them
 
 2. You can edit the temporary vector layer using standard editing tools if you want. 
 

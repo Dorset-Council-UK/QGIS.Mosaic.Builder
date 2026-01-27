@@ -56,21 +56,6 @@ pb_tool deploy
 pb_tool zip
 ```
 
-### Running Tests
-
-Run the test suite to ensure your changes don't break existing functionality:
-
-```bash
-# Navigate to the test directory
-cd test
-
-# Run all tests
-python -m pytest
-
-# Run specific test file
-python test_mosaic_builder_dialog.py
-```
-
 ## Project Structure
 
 ```
@@ -81,7 +66,6 @@ python test_mosaic_builder_dialog.py
 ├── resources.py               # Compiled resources
 ├── metadata.txt               # Plugin metadata
 ├── pb_tool.cfg               # Plugin builder configuration
-├── test/                     # Test files
 ├── help/                     # Documentation
 ├── i18n/                     # Translations
 └── icons/                    # Icon resources
@@ -113,9 +97,8 @@ python test_mosaic_builder_dialog.py
 Before submitting changes:
 
 1. **Test manually** in QGIS with various layer types
-2. **Run the automated tests** in the `test/` directory
-3. **Test on different operating systems** if possible
-4. **Verify UI responsiveness** and user experience
+2. **Test on different operating systems** if possible
+3. **Verify UI responsiveness** and user experience
 
 ## Contributing
 

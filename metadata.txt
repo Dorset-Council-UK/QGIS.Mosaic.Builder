@@ -37,7 +37,7 @@ changelog=
 
     1.0.5
     - Allow for decimal buffer sizes
-    - Increse allowed range of buffer sizes
+    - Increase allowed range of buffer sizes
     - Add tool to delete features from layer
 
 # Tags are comma separated with spaces allowed

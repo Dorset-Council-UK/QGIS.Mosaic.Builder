@@ -5,7 +5,7 @@
 name=Mosaic Builder
 qgisMinimumVersion=3.0
 description=Copy features from different layers and merge them together quickly and easily
-version=1.0.4
+version=1.0.5
 author=Dorset Council
 email=gis@dorsetcouncil.gov.uk
 
@@ -34,6 +34,11 @@ changelog=
 
     1.0.4
     - Fixed issue preventing you from unsetting the default layer, also filters the layer list to exclude WMS
+
+    1.0.5
+    - Allow for decimal buffer sizes
+    - Increase allowed range of buffer sizes
+    - Add tool to delete features from layer
 
 # Tags are comma separated with spaces allowed
 tags=python,vector,feature,feature extraction,polygon

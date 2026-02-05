@@ -12,6 +12,9 @@
         <file>icons/disc.png</file>
     </qresource>
     <qresource prefix="/plugins/mosaic_builder" >
+        <file>icons/remove.png</file>
+    </qresource>
+    <qresource prefix="/plugins/mosaic_builder" >
         <file>icons/merge.png</file>
     </qresource>
     <qresource prefix="/plugins/mosaic_builder" >

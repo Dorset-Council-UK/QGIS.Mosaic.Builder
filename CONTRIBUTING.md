@@ -26,11 +26,9 @@ Your contribution will be under our [license](https://github.com/Dorset-Council-
 
 ## Pull request guidelines
 
-Before working on a pull request, create an issue explaining what you want to contribute. This ensures that your pull request won't go unnoticed, and that you are not contributing something that is not suitable for the project. Once a core developer has set the `accepted` label on the issue, you can submit a pull request. The pull request description should reference the original issue.
+Before working on a pull request, create an issue explaining what you want to contribute. This ensures that your pull request won't go unnoticed, and that you are not contributing something that is not suitable for the project. The pull request description should reference the original issue.
 
 Your pull request must:
-
-- Pass the tests run automatically by the Continuous Integration system
 
 - Address a single issue or add a single item of functionality
 

@@ -26,7 +26,9 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.core import QgsProject, QgsSettings, QgsMessageLog, QgsMapLayerProxyModel, Qgis
+from qgis.core import QgsProject, QgsSettings, QgsMessageLog, Qgis
+
+from .compat import LAYER_FILTER_POLYGON
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -45,7 +47,7 @@ class MosaicBuilderDialog(QtWidgets.QDialog, FORM_CLASS):
         self.setupUi(self)
 
         # We can only work with polygon vector layers so we filter the list
-        self.layerSelectionCombo.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.layerSelectionCombo.setFilters(LAYER_FILTER_POLYGON)
 
         self.layerSelectionCombo.layerChanged.connect(self.updateLabelText)
 

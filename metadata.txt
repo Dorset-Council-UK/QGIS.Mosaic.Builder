@@ -4,6 +4,7 @@
 [general]
 name=Mosaic Builder
 qgisMinimumVersion=3.0
+qgisMaximumVersion=4.99
 description=Copy features from different layers and merge them together quickly and easily
 version=1.0.5
 author=Dorset Council

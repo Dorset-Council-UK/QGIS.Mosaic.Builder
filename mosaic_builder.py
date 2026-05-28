@@ -21,11 +21,13 @@
  *                                                                         *
  ***************************************************************************/
 """
-from encodings.punycode import T
-from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QMetaType, QTimer, QUrl
+from qgis.PyQt.QtCore import QSettings, QTranslator, QThread, QCoreApplication, QTimer, QUrl
 from qgis.PyQt.QtGui import QIcon, QDesktopServices
 from qgis.PyQt.QtWidgets import QApplication, QAction, QLabel, QMenu, QToolButton, QWidgetAction, QMainWindow, QDoubleSpinBox, QWidget, QHBoxLayout
-from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsSnappingUtils, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings, QgsWkbTypes
+from qgis.core import QgsProject, QgsExpressionContext, QgsExpressionContextUtils, Qgis, QgsMessageLog, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayerUtils, QgsRectangle, QgsFeature, QgsRenderContext, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsCategorizedSymbolRenderer, QgsSingleSymbolRenderer, QgsSymbol, QgsExpression, QgsSettings
+
+from .compat import (POLYGON_GEOMETRY_TYPE, SYMBOL_TYPE_FILL, SNAPPING_INDEX_EXTENT,
+                     SNAPPING_INDEX_HYBRID, SELECT_SET, FIELD_TYPE_STRING)
 from functools import partial
 
 from .mosaic_builder_canvastools import pointTool, areaTool
@@ -104,7 +106,7 @@ class MosaicBuilder:
         self.styleDictionaryExpression = None
 
         #Override snapping 
-        self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexExtent)
+        self.iface.mapCanvas().snappingUtils().setIndexingStrategy(SNAPPING_INDEX_EXTENT)
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -369,7 +371,7 @@ class MosaicBuilder:
         self.removeDrawingLayer()
 
         #Reset default snapping option
-        self.iface.mapCanvas().snappingUtils().setIndexingStrategy(QgsSnappingUtils.IndexHybrid)
+        self.iface.mapCanvas().snappingUtils().setIndexingStrategy(SNAPPING_INDEX_HYBRID)
 
     def openHelp(self, *args):
         help_path = os.path.join(os.path.dirname(__file__), 'help', 'index.html')
@@ -381,7 +383,7 @@ class MosaicBuilder:
         pluginDialog.show()
 
         # Run the dialog event loop
-        result = pluginDialog.exec_()
+        result = pluginDialog.exec()
         # See if OK was pressed
         if result:
             GlobalSettings = QgsSettings()
@@ -593,9 +595,9 @@ class MosaicBuilder:
             layer =  QgsVectorLayer("MultiPolygon?crs=epsg:27700&index=yes", "Vector Mosaic", "memory")
             layerProvider = layer.dataProvider()
             layerProvider.addAttributes([
-                QgsField("Primary_Key", QMetaType.Type.QString),
-                QgsField("Fill", QMetaType.Type.QString),
-                QgsField("Border", QMetaType.Type.QString),
+                QgsField("Primary_Key", FIELD_TYPE_STRING),
+                QgsField("Fill", FIELD_TYPE_STRING),
+                QgsField("Border", FIELD_TYPE_STRING),
             ])
             layer.updateFields()
             sldStatus2 = layer.loadNamedStyle(':/plugins/mosaic_builder/styles/mosaic.qml')
@@ -797,7 +799,7 @@ class MosaicBuilder:
             symbol = renderer.symbol()
             # get (first) symbol layer - if there are multiple layers we only use the first
             symbolLayer = symbol.symbolLayers()[0]
-            if symbolLayer.type() == QgsSymbol.Fill:
+            if symbolLayer.type() == SYMBOL_TYPE_FILL:
                 colourValue = ""
                 strokeValue = ""
                 if hasattr(symbolLayer, 'strokeColor'):
@@ -845,7 +847,7 @@ class MosaicBuilder:
                 featureGeom = self.reprojectGeom(featureGeom, self.iface.mapCanvas().mapSettings().destinationCrs().authid(),'EPSG:27700')
             
                 returnRect = featureGeom.boundingBox()
-                selectLayer.selectByRect(returnRect, QgsVectorLayer.SelectBehavior.SetSelection)
+                selectLayer.selectByRect(returnRect, SELECT_SET)
             
                 featuresToAdd = []
                 for feature in selectLayer.selectedFeatures():
@@ -875,7 +877,7 @@ class MosaicBuilder:
                     newFeature['Border'] = strokeValue
                     newFeature.setGeometry(feature.geometry())
 
-                    if feature.geometry().type() == QgsWkbTypes.PolygonGeometry:
+                    if feature.geometry().type() == POLYGON_GEOMETRY_TYPE:
                         featuresToAdd.append(newFeature)
                     else:
                         self.iface.messageBar().pushMessage("INFO", "A feature couldn't be copied because it was not a polygon.", Qgis.Info)

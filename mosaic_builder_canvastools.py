@@ -23,7 +23,9 @@
 """
 from qgis.PyQt.QtGui import QColor
 from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand, QgsMapTool
-from qgis.core import QgsWkbTypes, QgsPointXY, QgsRectangle
+from qgis.core import QgsPointXY, QgsRectangle
+
+from .compat import POLYGON_GEOMETRY_TYPE
 
 class pointTool(QgsMapToolEmitPoint):
 
@@ -59,7 +61,7 @@ class areaTool(QgsMapToolEmitPoint):
     def __init__(self, canvas):
         self.canvas = canvas
         QgsMapToolEmitPoint.__init__(self, self.canvas)
-        self.rubberBand = QgsRubberBand(self.canvas, QgsWkbTypes.PolygonGeometry)
+        self.rubberBand = QgsRubberBand(self.canvas, POLYGON_GEOMETRY_TYPE)
         self.rubberBand.setColor(QColor(181, 230, 29, 128))
         self.rubberBand.setWidth(1)
         self.reset()
@@ -67,7 +69,7 @@ class areaTool(QgsMapToolEmitPoint):
     def reset(self):
         self.startPoint = self.endPoint = None
         self.isEmittingPoint = False
-        self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
+        self.rubberBand.reset(POLYGON_GEOMETRY_TYPE)
 
     def canvasPressEvent(self, e):
         self.startPoint = self.toMapCoordinates(e.pos())
@@ -92,7 +94,7 @@ class areaTool(QgsMapToolEmitPoint):
         self.showRect(self.startPoint, self.endPoint)
 
     def showRect(self, startPoint, endPoint):
-        self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
+        self.rubberBand.reset(POLYGON_GEOMETRY_TYPE)
         if startPoint.x() == endPoint.x() or startPoint.y() == endPoint.y():
             return
 

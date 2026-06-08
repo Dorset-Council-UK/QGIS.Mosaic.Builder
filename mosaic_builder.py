@@ -356,7 +356,7 @@ class MosaicBuilder:
 
         try:
             self.pointTool.canvasClicked.disconnect(self.selectByClick)
-            self.areaTools.canvasClicked.disconnect(self.selectByArea)
+            self.areaTool.canvasClicked.disconnect(self.selectByArea)
             self.discTool.canvasClicked.disconnect(self.bufferByClick)
             self.removeTool.canvasClicked.disconnect(self.removeByClick)
             self.radiusSpinbox.disconnect(self.setRadius)
